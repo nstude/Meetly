@@ -1,148 +1,207 @@
-from django.db import models  
-from django.contrib.auth.models import User  
+from django.db import models
+from django.contrib.auth.models import User
 
-class Profile(models.Model): # Профиль пользователя 
-    user = models.OneToOneField( # Модель юзера
-        User,
-        on_delete=models.CASCADE
-    )
-    friends = models.ManyToManyField( # Друзья
-        User,
-        related_name='profile'
-    )
-    
-    gender = models.CharField( # Пол (гендер) - male/female
-        max_length=10
-    )
-    
-    photo = models.CharField( # Фотография
-        max_length=100
-    )
-    login = models.CharField(  # Логин пользователя
-        max_length=150,  
-        unique=True  
-    )
-    password = models.CharField(  # Пароль пользователя
-        max_length=150,    
-    )
-    
-    birth_date = models.DateField(  # Дата рождения
-        blank=True,  # Разрешаем оставлять пустым
-        null=True,   # Разрешаем значение NULL в базе данных
-    )
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
-    def __str__(self):
-        return f'Профиль пользователя {self.user.username}'
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 
 
-class Post(models.Model):  # Пост
-    author = models.ForeignKey( # Автор
+# ---------------- Профиль пользователя  ----------------
+class Profile(models.Model):
+    user = models.OneToOneField(
         User,
-        related_name='posts',
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        related_name='profile',
     )
-    id_post = models.AutoField(primary_key=True) # иднетификатор поста
-    text = models.TextField() # Текст
-    created = models.DateTimeField( # Дата создания
-        auto_now_add=True
+    photo = models.ImageField(
+        upload_to='profile_pictures/',
+        blank=True,
+        verbose_name="Фотография профиля"
     )
-    likes = models.ManyToManyField( # Кол-во лайков
-        User,
-        related_name='liked_posts',
-        blank=True
+    gender = models.CharField( # male(m)/female(f)
+        max_length=1,
+        verbose_name="Пол"
+    )
+    friends = models.ManyToManyField(
+        "self",
+        blank=True,
+        verbose_name="Друзья"
+    )
+    birth_date = models.DateField(
+        blank=True,
+        null=True,
+        verbose_name="Дата рождения"
     )
 
     class Meta:
+        verbose_name = "Профиль пользователя"
+        verbose_name_plural = "Профили пользователей"
+
+    def __str__(self):
+        return str(self.user.username)
+
+    def get_age(self):
+        import datetime
+        if self.birth_date:
+            today = datetime.date.today()
+            return today.year - self.birth_date.year - ((today.month, today.day) < (self.birth_date.month, self.birth_date.day))
+        return None
+
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs): # Создает записи в бд при создании нового пользователя
+    if created:
+        Profile.objects.create(user=instance)
+
+@receiver(post_save, sender=User)
+def save_user_profile(sender, instance, **kwargs): # Создает записи в бд при каждом сохранении пользователя
+    instance.profile.save()
+
+
+# ---------------- Пост ----------------
+class Post(models.Model):
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='posts',
+        verbose_name="Автор"
+    )
+    content = models.TextField(
+        verbose_name="Содержание"
+    )
+    published = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Дата создания"
+    )
+    likes = models.ManyToManyField(
+        User,
+        blank=True,
+        related_name='liked_posts',
+        verbose_name="Лайки"
+    )
+
+    class Meta:
+        verbose_name = "Пост"
+        verbose_name_plural = "Посты"
         ordering = ['-published']
 
     def __str__(self):
         return self.title
 
+    def total_likes(self): # Кол-во лайков
+        return self.likes.count()
 
-class Group(models.Model):  # Группа
-    author = models.ForeignKey(User, # Автор
-        related_name='groups',
-        on_delete=models.CASCADE
+
+# ---------------- Группа ----------------
+class Group(models.Model):
+    name = models.CharField(
+        max_length=100,
+        unique=True,
+        verbose_name="Название группы"
     )
-    
-    id_group = models.AutoField( # иднетификатор поста
-        primary_key=True
-    ) 
-    members = models.ManyToManyField( # Члены группы
+    author = models.ForeignKey(
         User,
-        related_name='groups'
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='author',
+        verbose_name="Автор"
     )
-    created = models.DateTimeField( # Дата создания
-        auto_now_add=True
+    members = models.ManyToManyField(
+        User,
+        related_name='group_memberships',
+        verbose_name="Участники группы"
+    )
+    created = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Дата создания"
     )
 
     class Meta:
+        verbose_name = "Группа"
+        verbose_name_plural = "Группы"
         ordering = ['created']
 
     def __str__(self):
         return f'Группа {self.name}'
-    
-class Message(models.Model):  # Сообщение
-    message = models.ForeignKey(  
-        Post,
-        related_name='likes',
-        on_delete=models.CASCADE
-    )
-    text = models.TextField() # Текст
-    author = models.ForeignKey(User, # Автор 
-        related_name='likes',
-        on_delete=models.CASCADE
-    )
-    group = models.ForeignKey(User, # Группа 
-        related_name='likes',
-        on_delete=models.CASCADE
-    )
-    post = models.ForeignKey(User, # Пост 
-        related_name='likes',
-        on_delete=models.CASCADE
-    )
-    
-    created = models.DateTimeField( # Дата 
-        auto_now_add=True
-    )
 
 
-    def clean(self):
-        # Проверяем, сколько полей заполнено
-        non_null_fields = sum(1 for field in [self.post, self.group] if field is not None)
+# ---------------- Сообщение ----------------
+class Message(models.Model):
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name="Автор"
+    )
+    content = models.TextField(
+        verbose_name="Содержание"
+    )
+    timestamp = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Дата и время отправки"
+    )
+    group = models.ForeignKey(Group,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='messages',
+        verbose_name="Группа"
+    )
+    post = models.ForeignKey(Post, 
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='comments',
+        verbose_name="Пост"
+    )
 
-        # Если более одного поля не NULL, выбрасываем ошибку
-        if non_null_fields > 1:
-            raise ValidationError("Только одно из полей может быть заполнено, остальные должны быть NULL.")
+    class Meta:
+        verbose_name = "Сообщение"
+        verbose_name_plural = "Сообщения"
+        ordering = ['timestamp']
 
-    def save(self, *args, **kwargs):
-        # Вызываем чистку данных перед сохранением
-        self.clean()
+    def __str__(self):
+        if self.group:
+            return f"Сообщение от {self.author.username} в {self.group.name}"
+        elif self.post:
+            return f"Комментарий от {self.author.username} к посту {self.post.title}"
+
+    def save(self, *args, **kwargs): # Проверяем, что сообщение привязано либо к группе, либо к посту, но не к обоим.
+        if self.group and self.post:
+            raise ValueError("Сообщение должно быть связано либо с группой, либо с постом, но не с обоими.")
+        if not self.group and not self.post:
+            raise ValueError("Сообщение должно быть связано либо с группой, либо с постом.")
         super().save(*args, **kwargs)
 
-    class Meta:
-        ordering = ['created']
 
-    def __str__(self):
-        return f'Лайк от {self.author.username} на {self.post.title}'
-    
-
-class Like(models.Model):  # Лайки
-    post = models.ForeignKey(  # Пост, к которому относится лайк
-        Post,
+# ---------------- Лайки ----------------
+class Like(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
         related_name='likes',
+        verbose_name="Пользователь"
+    )
+    content_type = models.ForeignKey(
+        ContentType,
         on_delete=models.CASCADE
     )
-    author = models.ForeignKey(User, # Автор 
-        related_name='likes',
-        on_delete=models.CASCADE
+    object_id = models.PositiveIntegerField(
     )
-    created = models.DateTimeField( # Дата 
-        auto_now_add=True
+    content_object = GenericForeignKey(
+        'content_type',
+        'object_id'
+    )
+    timestamp = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Дата и время лайка"
     )
 
     class Meta:
-        ordering = ['created']
+        verbose_name = "Лайк"
+        verbose_name_plural = "Лайки"
+        unique_together = ('user', 'content_type', 'object_id') # Предотвращаем повторные лайки от одного пользователя для одного объекта
 
     def __str__(self):
-        return f'Лайк от {self.author.username} на {self.post.title}'
+        return f"Лайк от {self.user.username} для {self.content_type.model} с ID {self.object_id}"
