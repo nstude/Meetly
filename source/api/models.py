@@ -77,7 +77,6 @@ class Post(models.Model):
     likes = models.ManyToManyField(
         User,
         blank=True,
-        null=True,
         related_name='liked_posts',
         verbose_name="Лайки"
     )
