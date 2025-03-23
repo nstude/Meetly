@@ -6,7 +6,7 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-e+gkiur4i)r@%upbn!mbm@3#8523dx@4k3387eh96h8qg=&per'
+SECRET_KEY = os.getenv('SECRET_KEY'),
 
 DEBUG = True
 
@@ -66,6 +66,11 @@ DATABASES = {
         'HOST': os.getenv('DATABASE_HOST'),
         'PORT': os.getenv('DATABASE_PORT'),
     }
+}
+
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,  # Количество элементов на странице по умолчанию
 }
 
 # Password validation
