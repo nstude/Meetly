@@ -1,9 +1,11 @@
 # Игнорирование виртуального окружения
+myvenv/
 venv/
 .env
+.venv/
 *.pyc
 __pycache__/
-myvenv/
+
 # Игнорирование зависимостей
 Pipfile
 Pipfile.lock
