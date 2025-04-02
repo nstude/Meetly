@@ -1,5 +1,6 @@
 from django.urls import path
 from source.api.views import (
+    UserListCreateView, UserRetrieveUpdateDestroyView,
     ProfileListCreateView, ProfileRetrieveUpdateDestroyView,
     PostListCreateView, PostRetrieveUpdateDestroyView,
     GroupListCreateView, GroupRetrieveUpdateDestroyView,
@@ -8,6 +9,10 @@ from source.api.views import (
 )
 
 urlpatterns = [
+    # Маршруты для User
+    path('users/', UserListCreateView.as_view(), name='user-list'),
+    path('users/<int:pk>/', UserRetrieveUpdateDestroyView.as_view(), name='user-detail'),
+
     # Маршруты для Profile
     path('profiles/', ProfileListCreateView.as_view(), name='profile-list-create'),
     path('profiles/<int:pk>/', ProfileRetrieveUpdateDestroyView.as_view(), name='profile-retrieve-update-destroy'),

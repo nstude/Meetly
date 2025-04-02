@@ -7,7 +7,7 @@ load_dotenv()
 # ---------------- DEBUG  ----------------
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-DEBUG = True
+DEBUG = False
 
 
 # ---------------- KEY  ----------------
@@ -15,7 +15,7 @@ SECRET_KEY = os.getenv('SECRET_KEY'),
 
 
 # ---------------- URL  ----------------
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 APPEND_SLASH = True
 
@@ -28,14 +28,17 @@ STATIC_URL = 'static/'
 
 # ---------------- APPS  ----------------
 INSTALLED_APPS = [
+    'source.api',
+    'source.config',
+    'source.api.management',
+    'source.api.management.commands',
+    'django_filters',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'source.config',
-    'source.api',
 ]
 
 MIDDLEWARE = [
@@ -91,6 +94,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ---------------- REST API  ----------------
 REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,  # Количество элементов на странице по умолчанию
 }
