@@ -2,14 +2,39 @@ from rest_framework import generics
 from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
 
-from .models import Profile, Post, Group, Message, Like
+from .models import User, Profile, Post, Group, Message, Like
 from .serializers import (
+    UserSerializer,
     ProfileSerializer,
     PostSerializer,
     GroupSerializer,
     MessageSerializer,
     LikeSerializer
 )
+
+
+# ---------------- Пользователь ----------------
+class UserListCreateView(generics.ListCreateAPIView):
+    """
+    Также для всех остальных моделей
+    GET: Список всех пользователей
+    POST: Создание нового пользователя
+    """
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    pagination_class = PageNumberPagination
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['username', 'email', 'is_active']
+
+class UserRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET: Получение конкретного пользователя
+    PUT: Полное обновление пользователя
+    PATCH: Частичное обновление пользователя
+    DELETE: Удаление пользователя
+    """
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
 
 
 # ---------------- Профиль пользователя  ----------------
