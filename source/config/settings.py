@@ -7,7 +7,7 @@ load_dotenv()
 # ---------------- DEBUG  ----------------
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-DEBUG = False
+DEBUG = True
 
 
 # ---------------- KEY  ----------------
@@ -29,9 +29,7 @@ STATIC_URL = 'static/'
 # ---------------- APPS  ----------------
 INSTALLED_APPS = [
     'source.api',
-    'source.config',
-    'source.api.management',
-    'source.api.management.commands',
+    'source.api.test',
     'django_filters',
     'django.contrib.admin',
     'django.contrib.auth',

@@ -4,12 +4,13 @@ from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 
 
 # ---------------- Профиль пользователя  ----------------
 class Profile(models.Model):
+    # TO DO добавить поле age
     user = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
@@ -49,18 +50,10 @@ class Profile(models.Model):
             return today.year - self.birth_date.year - ((today.month, today.day) < (self.birth_date.month, self.birth_date.day))
         return None
 
-@receiver(post_save, sender=User)
-def create_user_profile(sender, instance, created, **kwargs): # Создает записи в бд при создании нового пользователя
-    if created:
-        Profile.objects.create(user=instance)
-
-@receiver(post_save, sender=User)
-def save_user_profile(sender, instance, **kwargs): # Создает записи в бд при каждом сохранении пользователя
-    instance.profile.save()
-
 
 # ---------------- Пост ----------------
 class Post(models.Model):
+    # TO DO добавить название к посту
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -74,11 +67,11 @@ class Post(models.Model):
         auto_now_add=True,
         verbose_name="Дата создания"
     )
-    likes = models.ManyToManyField(
-        User,
-        blank=True,
-        related_name='liked_posts',
-        verbose_name="Лайки"
+    likes = models.IntegerField(
+        default=0
+    )
+    like_list = GenericRelation(
+        'Like'
     )
 
     class Meta:
@@ -89,8 +82,6 @@ class Post(models.Model):
     def __str__(self):
         return self.content
 
-    def total_likes(self): # Кол-во лайков
-        return self.likes.count()
 
 
 # ---------------- Группа ----------------
@@ -124,7 +115,7 @@ class Group(models.Model):
         ordering = ['created']
 
     def __str__(self):
-        return f'Группа {self.name}'
+        return self.name
 
 
 # ---------------- Сообщение ----------------
@@ -154,6 +145,12 @@ class Message(models.Model):
         blank=True,
         related_name='comments',
         verbose_name="Пост"
+    )
+    likes = models.IntegerField(
+        default=0
+    )
+    like_list = GenericRelation(
+        'Like'
     )
 
     class Meta:

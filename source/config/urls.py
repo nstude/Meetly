@@ -3,5 +3,5 @@ from django.contrib import admin
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('source.api.urls')),
+    path('polls/', include('source.api.urls')),
 ]
