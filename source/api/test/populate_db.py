@@ -33,7 +33,7 @@ def create_users(num_users):
 def create_profiles(users):
     for user in users:
         if not Profile.objects.filter(user=user).exists():
-            profile = Profile.objects.create(
+            Profile.objects.create(
                 user=user,
                 gender=random.choice(['m', 'f']),
                 birth_date=datetime.today() - timedelta(days=random.randint(18 * 365, 50 * 365)),
