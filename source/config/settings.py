@@ -4,41 +4,23 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# ---------------- DEBUG  ----------------
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-DEBUG = False
+SECRET_KEY = 'django-insecure-e+gkiur4i)r@%upbn!mbm@3#8523dx@4k3387eh96h8qg=&per'
 
+DEBUG = True
 
-# ---------------- KEY  ----------------
-SECRET_KEY = os.getenv('SECRET_KEY'),
+ALLOWED_HOSTS = []
 
-
-# ---------------- URL  ----------------
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
-
-APPEND_SLASH = True
-
-ROOT_URLCONF = 'source.config.urls'
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.1/howto/static-files/
-STATIC_URL = 'static/'
-
-
-# ---------------- APPS  ----------------
 INSTALLED_APPS = [
-    'source.api',
-    'source.config',
-    'source.api.management',
-    'source.api.management.commands',
-    'django_filters',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'source.api',
+    'source.config',
 ]
 
 MIDDLEWARE = [
@@ -51,6 +33,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+ROOT_URLCONF = 'source.config.urls'
 
 TEMPLATES = [
     {
@@ -71,7 +54,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'source.config.wsgi.application'
 
 
-# ---------------- DATABASE  ----------------
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
@@ -86,21 +68,6 @@ DATABASES = {
     }
 }
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
-
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-
-# ---------------- REST API  ----------------
-REST_FRAMEWORK = {
-    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10,  # Количество элементов на странице по умолчанию
-}
-
-
-# ---------------- VALIDATION  ----------------
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
@@ -120,7 +87,6 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# ---------------- TIME AND LANGUAGE  ----------------
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
@@ -133,4 +99,12 @@ USE_I18N = True
 USE_TZ = True
 
 
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/5.1/howto/static-files/
 
+STATIC_URL = 'static/'
+
+# Default primary key field type
+# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

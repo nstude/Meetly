@@ -87,7 +87,7 @@ class Post(models.Model):
         ordering = ['-published']
 
     def __str__(self):
-        return self.content
+        return self.title
 
     def total_likes(self): # Кол-во лайков
         return self.likes.count()
@@ -165,7 +165,7 @@ class Message(models.Model):
         if self.group:
             return f"Сообщение от {self.author.username} в {self.group.name}"
         elif self.post:
-            return f"Комментарий от {self.author.username} к посту {self.post.content}"
+            return f"Комментарий от {self.author.username} к посту {self.post.title}"
 
     def save(self, *args, **kwargs): # Проверяем, что сообщение привязано либо к группе, либо к посту, но не к обоим.
         if self.group and self.post:
