@@ -1,6 +1,30 @@
 from rest_framework import generics
 from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import generics
+from rest_framework.pagination import PageNumberPagination
+from django_filters.rest_framework import DjangoFilterBackend
+from django.shortcuts import render, redirect
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth import login
+from django.contrib import messages
+from .models import User, Profile, Post, Group, Message, Like
+from django import forms
+from django.contrib.auth.models import User
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework import status
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate
+from rest_framework.response import Response
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm
+from django.http import JsonResponse
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
 
 from source.api.models import User, Profile, Post, Group, Message, Like
 from source.api.serializers.user_serializers import (
@@ -188,3 +212,86 @@ class LikeCreateView(generics.CreateAPIView):
 class LikeDestroyView(generics.DestroyAPIView):
     queryset = Like.objects.all()
     serializer_class = LikeDeleteSerializer
+    
+    
+def index(request):
+    return render(request, 'meetly/index.html')
+class RegistrationForm(forms.ModelForm):
+    password = forms.CharField(widget=forms.PasswordInput, label='Пароль')
+    password_confirm = forms.CharField(widget=forms.PasswordInput, label='Подтверждение пароля')
+
+    class Meta:
+        model = User
+        fields = ['username', 'email']
+
+    def clean_password_confirm(self):
+        password = self.cleaned_data.get('password')
+        password_confirm = self.cleaned_data.get('password_confirm')
+        if password != password_confirm:
+            raise forms.ValidationError('Пароли не совпадают.')
+        return password_confirm
+
+
+
+def register(request):
+    if request.method == 'POST':
+        form = RegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)  
+            user.set_password(form.cleaned_data['password'])
+            user.save() 
+            return redirect('index')
+    else:
+        form = RegistrationForm()
+
+    return render(request, 'meetly/register.html', {'form': form})
+
+
+def login_view(request):
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            login(request, user)
+            messages.success(request, f"Добро пожаловать, {user.username}!")
+            return redirect('index')
+        else:
+            messages.error(request, "Неверное имя пользователя или пароль.")
+    else:
+        form = AuthenticationForm()
+
+    return render(request, 'meetly/login.html', {'form': form})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def current_user(request):
+    return Response({
+        'username': request.user.username,
+        'email': request.user.email
+    })
+    
+
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]  
+
+    def post(self, request):
+        user = request.user
+        old_password = request.data.get('old_password')
+        new_password = request.data.get('new_password')
+
+
+        if not user.check_password(old_password):
+            return JsonResponse({'detail': 'Неверный старый пароль.'}, status=400)
+
+        if len(new_password) < 8:
+            return JsonResponse({'detail': 'Пароль должен быть не менее 8 символов.'}, status=400)
+
+        user.set_password(new_password)
+        user.save()
+        update_session_auth_hash(request, user)
+        return JsonResponse({'success': True})
+    
+
+def change_password_page(request):
+    return render(request, 'meetly/change-password.html')

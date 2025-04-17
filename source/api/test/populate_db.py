@@ -50,7 +50,7 @@ def create_groups(users, num_groups):
         group_name = name=f"Группа {num_group}"
         if not Group.objects.filter(name=group_name).exists():
             group = Group.objects.create(
-                group_name,
+                name=group_name,
                 author=random.choice(users),
                 created=datetime.now() - timedelta(days=random.randint(0, 30))
             )
