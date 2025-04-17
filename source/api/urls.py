@@ -1,3 +1,4 @@
+
 from django.urls import path
 from source.api.views import (
     UserRetrieveAllView, UserCreateView, UserRetrieveView, UserUpdateView, UserDestroyView,
@@ -9,6 +10,8 @@ from source.api.views import (
 )
 
 urlpatterns = [
+   
+   
     # Маршруты для User
     path('users/', UserRetrieveAllView.as_view(), name='user-retrieve-all'),
     path('users/create/', UserCreateView.as_view(), name='user-create'),
