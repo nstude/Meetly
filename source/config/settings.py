@@ -28,8 +28,6 @@ STATIC_URL = 'static/'
 
 # ---------------- APPS  ----------------
 INSTALLED_APPS = [
-    'source.api',
-    'source.api.test',
     'django_filters',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -37,6 +35,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'source.api',
+    'source.api.test',
+    'source.api.serializers',
 ]
 
 MIDDLEWARE = [
