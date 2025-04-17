@@ -1,9 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
 
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 
@@ -198,7 +195,7 @@ class Like(models.Model):
     class Meta:
         verbose_name = "Лайк"
         verbose_name_plural = "Лайки"
-        unique_together = ('user', 'content_type', 'object_id') # Предотвращаем повторные лайки от одного пользователя для одного объекта
+        unique_together = ('user', 'content_type', 'object_id')
 
     def __str__(self):
         return f"Лайк от {self.user.username} для {self.content_type.model} с ID {self.object_id}"
