@@ -1,35 +1,55 @@
+
 from django.urls import path
 from source.api.views import (
-    UserListCreateView, UserRetrieveUpdateDestroyView,
-    ProfileListCreateView, ProfileRetrieveUpdateDestroyView,
-    PostListCreateView, PostRetrieveUpdateDestroyView,
-    GroupListCreateView, GroupRetrieveUpdateDestroyView,
-    MessageListCreateView, MessageRetrieveUpdateDestroyView,
-    LikeListCreateView, LikeRetrieveUpdateDestroyView
+    UserRetrieveAllView, UserCreateView, UserRetrieveView, UserUpdateView, UserDestroyView,
+    ProfileRetrieveAllView, ProfileCreateView, ProfileRetrieveView, ProfileUpdateView, ProfileDestroyView,
+    PostRetrieveAllView, PostCreateView, PostRetrieveView, PostUpdateView, PostDestroyView,
+    GroupRetrieveAllView, GroupCreateView, GroupRetrieveView, GroupUpdateView, GroupDestroyView,
+    MessageRetrieveAllView, MessageCreateView, MessageRetrieveView, MessageUpdateView, MessageDestroyView,
+    LikeRetrieveAllView, LikeCreateView, LikeRetrieveView, LikeDestroyView
 )
 
 urlpatterns = [
+   
+   
     # Маршруты для User
-    path('users/', UserListCreateView.as_view(), name='user-list'),
-    path('users/<int:pk>/', UserRetrieveUpdateDestroyView.as_view(), name='user-detail'),
+    path('users/', UserRetrieveAllView.as_view(), name='user-retrieve-all'),
+    path('users/create/', UserCreateView.as_view(), name='user-create'),
+    path('users/<int:pk>/', UserRetrieveView.as_view(), name='user-retrieve'),
+    path('users/<int:pk>/update/', UserUpdateView.as_view(), name='user-update'),
+    path('users/<int:pk>/delete/', UserDestroyView.as_view(), name='user-destroy'),
 
     # Маршруты для Profile
-    path('profiles/', ProfileListCreateView.as_view(), name='profile-list-create'),
-    path('profiles/<int:pk>/', ProfileRetrieveUpdateDestroyView.as_view(), name='profile-retrieve-update-destroy'),
+    path('profiles/', ProfileRetrieveAllView.as_view(), name='profile-retrieve-all'),
+    path('profiles/create/', ProfileCreateView.as_view(), name='profile-create'),
+    path('profiles/<int:pk>/', ProfileRetrieveView.as_view(), name='profile-retrieve'),
+    path('profiles/<int:pk>/update/', ProfileUpdateView.as_view(), name='profile-update'),
+    path('profiles/<int:pk>/delete/', ProfileDestroyView.as_view(), name='profile-destroy'),
 
     # Маршруты для Post
-    path('posts/', PostListCreateView.as_view(), name='post-list-create'),
-    path('posts/<int:pk>/', PostRetrieveUpdateDestroyView.as_view(), name='post-retrieve-update-destroy'),
+    path('posts/', PostRetrieveAllView.as_view(), name='post-retrieve-all'),
+    path('posts/create/', PostCreateView.as_view(), name='post-create'),
+    path('posts/<int:pk>/', PostRetrieveView.as_view(), name='post-retrieve'),
+    path('posts/<int:pk>/update/', PostUpdateView.as_view(), name='post-update'),
+    path('posts/<int:pk>/delete/', PostDestroyView.as_view(), name='post-destroy'),
 
     # Маршруты для Group
-    path('groups/', GroupListCreateView.as_view(), name='group-list-create'),
-    path('groups/<int:pk>/', GroupRetrieveUpdateDestroyView.as_view(), name='group-retrieve-update-destroy'),
+    path('groups/', GroupRetrieveAllView.as_view(), name='group-retrieve-all'),
+    path('groups/create/', GroupCreateView.as_view(), name='group-create'),
+    path('groups/<int:pk>/', GroupRetrieveView.as_view(), name='group-retrieve'),
+    path('groups/<int:pk>/update/', GroupUpdateView.as_view(), name='group-update'),
+    path('groups/<int:pk>/delete/', GroupDestroyView.as_view(), name='group-destroy'),
 
     # Маршруты для Message
-    path('messages/', MessageListCreateView.as_view(), name='message-list-create'),
-    path('messages/<int:pk>/', MessageRetrieveUpdateDestroyView.as_view(), name='message-retrieve-update-destroy'),
+    path('messages/', MessageRetrieveAllView.as_view(), name='message-retrieve-all'),
+    path('messages/create/', MessageCreateView.as_view(), name='message-create'),
+    path('messages/<int:pk>/', MessageRetrieveView.as_view(), name='message-retrieve'),
+    path('messages/<int:pk>/update/', MessageUpdateView.as_view(), name='message-update'),
+    path('messages/<int:pk>/delete/', MessageDestroyView.as_view(), name='message-destroy'),
 
     # Маршруты для Like
-    path('likes/', LikeListCreateView.as_view(), name='like-list-create'),
-    path('likes/<int:pk>/', LikeRetrieveUpdateDestroyView.as_view(), name='like-retrieve-update-destroy'),
+    path('likes/', LikeRetrieveAllView.as_view(), name='like-retrieve-all'),
+    path('likes/create/', LikeCreateView.as_view(), name='like-create'),
+    path('likes/<int:pk>/', LikeRetrieveView.as_view(), name='like-retrieve'),
+    path('likes/<int:pk>/delete/', LikeDestroyView.as_view(), name='like-destroy'),
 ]

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Вход</title>
+</head>
+<body>
+    <h2>Войти</h2>
+    <div id="error" style="color:red;"></div>
+    <form id="login-form">
+        <label>Имя пользователя:</label><br>
+        <input type="text" id="username"><br>
+        <label>Пароль:</label><br>
+        <input type="password" id="password"><br><br>
+        <button type="submit">Войти</button>
+    </form>
+
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            const response = await fetch('/api/token/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Сохраняем токены в localStorage
+                localStorage.setItem('access', data.access);
+                localStorage.setItem('refresh', data.refresh);
+
+                // Перенаправляем или показываем сообщение
+                alert('Успешный вход!');
+                window.location.href = '/'; // Пример
+            } else {
+                document.getElementById('error').textContent = 'Имя пользователя или пароль неверны';
+            }
+        });
+    </script>
+</body>
+</html>
