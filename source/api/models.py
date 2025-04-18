@@ -7,7 +7,7 @@ from django.contrib.contenttypes.models import ContentType
 
 # ---------------- Профиль пользователя  ----------------
 class Profile(models.Model):
-    # TO DO добавить поле age
+    # TO DO добавить поле age !!!
     user = models.OneToOneField(
         User,
         on_delete=models.CASCADE,

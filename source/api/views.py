@@ -213,9 +213,13 @@ class LikeDestroyView(generics.DestroyAPIView):
     queryset = Like.objects.all()
     serializer_class = LikeDeleteSerializer
     
-    
+
+
+# TO DO Добавить файл бекенда для аутентификации
 def index(request):
     return render(request, 'meetly/index.html')
+
+
 class RegistrationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput, label='Пароль')
     password_confirm = forms.CharField(widget=forms.PasswordInput, label='Подтверждение пароля')
@@ -232,7 +236,6 @@ class RegistrationForm(forms.ModelForm):
         return password_confirm
 
 
-
 def register(request):
     if request.method == 'POST':
         form = RegistrationForm(request.POST)
@@ -246,7 +249,8 @@ def register(request):
 
     return render(request, 'meetly/register.html', {'form': form})
 
-
+# TO DO добавить сериализатор для логина
+# Поменять названия
 def login_view(request):
     if request.method == 'POST':
         form = AuthenticationForm(request, data=request.POST)
@@ -270,8 +274,9 @@ def current_user(request):
         'username': request.user.username,
         'email': request.user.email
     })
-    
 
+# TO DO Возможно стоит добавить сериализатор для изменения пароля
+# Если добавлять, то явно в new_password задать min_length=8 и max_length=128
 class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]  
 
