@@ -4,6 +4,21 @@ from django.core.exceptions import ObjectDoesNotExist
 from source.api.models import User, Post
 from source.api.serializers.user_serializers import UserReadSerializer
 
+# TO DO сделать через наследование
+class PostForUserReadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Post
+        fields = ['id', 'content']
+        read_only_fields = fields
+
+
+class PostForFriendsReadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Post
+        fields = ['id', 'author', 'content']
+        read_only_fields = fields
+
+
 class PostReadSerializer(serializers.ModelSerializer):
     author = UserReadSerializer(read_only=True)
     comments = serializers.PrimaryKeyRelatedField(many=True, read_only=True)

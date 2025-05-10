@@ -40,12 +40,15 @@ from source.api.serializers.profile_serializers import (
     ProfileDeleteSerializer
 )
 from source.api.serializers.post_serializers import (
+    PostForUserReadSerializer,
+    PostForFriendsReadSerializer,
     PostReadSerializer,
     PostCreateSerializer,
     PostUpdateSerializer,
     PostDeleteSerializer
 )
 from source.api.serializers.group_serializers import (
+    GroupForUserReadSerializer,
     GroupReadSerializer,
     GroupCreateSerializer,
     GroupUpdateSerializer,
@@ -88,6 +91,24 @@ class UserDestroyView(generics.DestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserDeleteSerializer
 
+# Эндпонит для вывода групп конкретного юзера
+# TO DO Сделать по уму
+class UserGroupsRetrieveView(generics.ListAPIView):
+    serializer_class = GroupForUserReadSerializer
+
+    def get_queryset(self):
+        user_id = self.kwargs['user_id']
+        return Group.objects.filter(members__id=user_id)
+
+# Эндпонит для вывода постов конкретного юзера
+class UserPostsRetrieveView(generics.ListAPIView):
+    serializer_class = PostForUserReadSerializer
+
+    def get_queryset(self):
+        user_id = self.kwargs['user_id']
+        return Post.objects.filter(author__id=user_id)
+    
+
 
 # ---------------- Профиль пользователя  ----------------
 class ProfileRetrieveView(generics.RetrieveAPIView):
@@ -112,6 +133,20 @@ class ProfileUpdateView(generics.UpdateAPIView):
 class ProfileDestroyView(generics.DestroyAPIView):
     queryset = Profile.objects.all()
     serializer_class = ProfileDeleteSerializer
+
+# Эндпонит для вывода постов конкретного юзера
+class ProfileFriendsPostsRetrieveView(generics.ListAPIView):
+    serializer_class = PostForFriendsReadSerializer
+
+    def get_queryset(self):
+        profile_id = self.kwargs['profile_id']
+        try:
+            profile = Profile.objects.get(id=profile_id)
+            friends = profile.friends.all()
+            posts = Post.objects.filter(author__profile__in=friends)
+            return posts
+        except Profile.DoesNotExist:
+            return Post.objects.none()
 
 
 
@@ -212,7 +247,7 @@ class LikeCreateView(generics.CreateAPIView):
 class LikeDestroyView(generics.DestroyAPIView):
     queryset = Like.objects.all()
     serializer_class = LikeDeleteSerializer
-    
+
 
 
 # TO DO Добавить файл бекенда для аутентификации
@@ -296,7 +331,7 @@ class ChangePasswordView(APIView):
         user.save()
         update_session_auth_hash(request, user)
         return JsonResponse({'success': True})
-    
+
 
 def change_password_page(request):
     return render(request, 'meetly/change-password.html')
