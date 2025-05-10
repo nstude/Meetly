@@ -1,20 +1,24 @@
+from source.api import views
+from source.api.views import current_user, ChangePasswordView
+
+from django.conf import settings
 from django.urls import path, include
 from django.contrib import admin
-from source.api import views
 from django.contrib.auth import views as auth_views
+from django.conf.urls.static import static
+
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
+    TokenVerifyView
 )
-from rest_framework_simplejwt.views import TokenVerifyView
-from source.api.views import current_user
-from source.api.views import ChangePasswordView
-from django.conf import settings
-from django.conf.urls.static import static
+
+
+# TO DO Возможно разделить урлы
 urlpatterns = [
     path('', views.index, name='index'),
     path('admin/', admin.site.urls),
-    path('polls/', include('source.api.urls')),
+    path('api/', include('source.api.urls')),
     path('register/', views.register, name='register'),
     path('login/', views.login_view, name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='index'), name='logout'),

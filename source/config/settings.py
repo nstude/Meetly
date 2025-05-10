@@ -4,19 +4,28 @@ from dotenv import load_dotenv
 from datetime import timedelta
 load_dotenv()
 
-# ---------------- DEBUG  ----------------
+# ---------------- DEBUG ----------------
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 DEBUG = True
 
 
-# ---------------- KEY  ----------------
+# ---------------- KEY ----------------
 SECRET_KEY = os.getenv('SECRET_KEY')
 
+
+# ---------------- COOKIE ----------------
+SESSION_COOKIE_SECURE = True
+
+CSRF_COOKIE_SECURE = True
+
+
+# ---------------- MEDIA ----------------
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# ---------------- URL  ----------------
+
+# ---------------- URL ----------------
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 APPEND_SLASH = True
@@ -30,7 +39,7 @@ STATIC_URL = 'static/'
 
 
 
-# ---------------- APPS  ----------------
+# ---------------- APPS ----------------
 INSTALLED_APPS = [
     'django_filters',
     'django.contrib.admin',
@@ -45,6 +54,8 @@ INSTALLED_APPS = [
     'rest_framework',
 ]
 
+WSGI_APPLICATION = 'source.config.wsgi.application'
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -54,7 +65,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
 
 TEMPLATES = [
     {
@@ -72,10 +82,9 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'source.config.wsgi.application'
 
 
-# ---------------- DATABASE  ----------------
+# ---------------- DATABASE ----------------
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
@@ -96,7 +105,7 @@ DATABASES = {
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-# ---------------- REST API  ----------------
+# ---------------- REST API ----------------
 REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
@@ -108,7 +117,7 @@ REST_FRAMEWORK = {
 }
 
 
-# ---------------- VALIDATION  ----------------
+# ---------------- VALIDATION ----------------
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
@@ -127,8 +136,21 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# ---------------- JWT ----------------
 
+# ---------------- TIME AND LANGUAGE ----------------
+# Internationalization
+# https://docs.djangoproject.com/en/5.1/topics/i18n/
+
+LANGUAGE_CODE = 'en-us'
+
+TIME_ZONE = 'UTC'
+
+USE_I18N = True
+
+USE_TZ = True
+
+
+# ---------------- JWT ----------------
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),

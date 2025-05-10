@@ -150,12 +150,10 @@ def delete_all_test_records_in_object(object):
 
 
 def delete_all_objects():
-    delete_all_test_records_in_object(Like)
-    delete_all_test_records_in_object(Message)
-    delete_all_test_records_in_object(Post)
-    delete_all_test_records_in_object(Group)
-    delete_all_test_records_in_object(Profile)
-    delete_all_test_records_in_object(User)
+    objects = [Like, Message, Post, Group, Profile, User]
+
+    for object in objects:
+        delete_all_test_records_in_object(object)
 
 
 if __name__ == '__main__':
