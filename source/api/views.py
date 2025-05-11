@@ -1,29 +1,17 @@
-from rest_framework import generics
-from rest_framework.pagination import PageNumberPagination
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import generics
-from rest_framework.pagination import PageNumberPagination
-from django_filters.rest_framework import DjangoFilterBackend
-from django.shortcuts import render, redirect
-from django.contrib.auth.forms import AuthenticationForm
-from django.contrib.auth import login
-from django.contrib import messages
-from .models import User, Profile, Post, Group, Message, Like
 from django import forms
-from django.contrib.auth.models import User
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
-from rest_framework import status
-from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from django.contrib.auth.models import User
-from django.contrib.auth import authenticate
-from rest_framework.response import Response
-from django.contrib.auth import update_session_auth_hash
-from django.contrib.auth.forms import PasswordChangeForm
 from django.http import JsonResponse
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from django.contrib.auth import login, update_session_auth_hash
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.models import User
+from django_filters.rest_framework import DjangoFilterBackend
+
+from rest_framework import status, generics
 from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 
 from source.api.models import User, Profile, Post, Group, Message, Like
