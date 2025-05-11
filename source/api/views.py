@@ -40,19 +40,21 @@ from source.api.serializers.profile_serializers import (
     ProfileDeleteSerializer
 )
 from source.api.serializers.post_serializers import (
-    PostForUserReadSerializer,
-    PostForFriendsReadSerializer,
+    PostContentOnlyReadSerializer,
+    PostContentWithAuthorReadSerializer,
     PostReadSerializer,
     PostCreateSerializer,
     PostUpdateSerializer,
     PostDeleteSerializer
 )
 from source.api.serializers.group_serializers import (
-    GroupForUserReadSerializer,
+    GroupNameOnlyReadSerializer,
     GroupReadSerializer,
     GroupCreateSerializer,
     GroupUpdateSerializer,
-    GroupDeleteSerializer
+    GroupDeleteSerializer,
+    GroupAddMemberSerializer,
+    GroupRemoveMemberSerializer
 )
 from source.api.serializers.message_serializers import (
     MessageReadSerializer,
@@ -94,7 +96,7 @@ class UserDestroyView(generics.DestroyAPIView):
 # Эндпонит для вывода групп конкретного юзера
 # TO DO Сделать по уму
 class UserGroupsRetrieveView(generics.ListAPIView):
-    serializer_class = GroupForUserReadSerializer
+    serializer_class = GroupNameOnlyReadSerializer
 
     def get_queryset(self):
         user_id = self.kwargs['user_id']
@@ -102,7 +104,7 @@ class UserGroupsRetrieveView(generics.ListAPIView):
 
 # Эндпонит для вывода постов конкретного юзера
 class UserPostsRetrieveView(generics.ListAPIView):
-    serializer_class = PostForUserReadSerializer
+    serializer_class = PostContentOnlyReadSerializer
 
     def get_queryset(self):
         user_id = self.kwargs['user_id']
@@ -136,7 +138,7 @@ class ProfileDestroyView(generics.DestroyAPIView):
 
 # Эндпонит для вывода постов конкретного юзера
 class ProfileFriendsPostsRetrieveView(generics.ListAPIView):
-    serializer_class = PostForFriendsReadSerializer
+    serializer_class = PostContentWithAuthorReadSerializer
 
     def get_queryset(self):
         profile_id = self.kwargs['profile_id']
@@ -199,6 +201,45 @@ class GroupUpdateView(generics.UpdateAPIView):
 class GroupDestroyView(generics.DestroyAPIView):
     queryset = Group.objects.all()
     serializer_class = GroupDeleteSerializer
+
+
+class GroupAddMembersView(generics.GenericAPIView):
+    serializer_class = GroupAddMemberSerializer
+
+    def post(self, request, *args, **kwargs):
+        group = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        group.members.add(*serializer.validated_data['members_id'])
+        return Response(
+            {"status": "Пользователи успешно добавлены"},
+            status=status.HTTP_200_OK
+        )
+
+    def get_object(self):
+        return Group.objects.get(pk=self.kwargs['group_id'])
+
+
+class GroupRemoveMembersView(generics.GenericAPIView):
+    serializer_class = GroupRemoveMemberSerializer
+
+    def post(self, request, *args, **kwargs):
+        group = self.get_object()
+        serializer = self.get_serializer(
+            data=request.data,
+            context={'group': group}
+        )
+        serializer.is_valid(raise_exception=True)
+        
+        group.members.remove(*serializer.validated_data['members_id'])
+        return Response(
+            {"status": "Пользователи успешно удалены"},
+            status=status.HTTP_200_OK
+        )
+
+    def get_object(self):
+        return Group.objects.get(pk=self.kwargs['group_id'])
 
 
 

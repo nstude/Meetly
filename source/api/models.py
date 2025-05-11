@@ -7,11 +7,15 @@ from django.contrib.contenttypes.models import ContentType
 
 # ---------------- Профиль пользователя  ----------------
 class Profile(models.Model):
-    # TO DO добавить поле age !!!
     user = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
         related_name='profile',
+    )
+    age = models.IntegerField(
+        blank=True,
+        null=True,
+        verbose_name="Возраст"
     )
     photo = models.ImageField(
         upload_to='profile_pictures/',
@@ -50,7 +54,6 @@ class Profile(models.Model):
 
 # ---------------- Пост ----------------
 class Post(models.Model):
-    # TO DO добавить название к посту
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,

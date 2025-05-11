@@ -29,7 +29,9 @@ from source.api.views import (
     GroupCreateView,
     GroupRetrieveView,
     GroupUpdateView,
-    GroupDestroyView
+    GroupDestroyView,
+    GroupAddMembersView,
+    GroupRemoveMembersView
 )
 from source.api.views import (
     MessageRetrieveAllView,
@@ -78,6 +80,8 @@ urlpatterns = [
     path('groups/<int:pk>/', GroupRetrieveView.as_view(), name='group-retrieve'),
     path('groups/<int:pk>/update/', GroupUpdateView.as_view(), name='group-update'),
     path('groups/<int:pk>/delete/', GroupDestroyView.as_view(), name='group-destroy'),
+    path('groups/<int:group_id>/add_members/', GroupAddMembersView.as_view(), name='group-add-members'),
+    path('groups/<int:group_id>/remove_members/', GroupRemoveMembersView.as_view(), name='group-remove-members'),
 
     # Маршруты для Message
     path('messages/', MessageRetrieveAllView.as_view(), name='message-retrieve-all'),

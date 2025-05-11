@@ -5,24 +5,44 @@ from source.api.models import User, Group
 from source.api.serializers.user_serializers import UserReadSerializer
 
 
-class GroupForUserReadSerializer(serializers.ModelSerializer):
+class GroupBaseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Group
+        fields = ['id', 'name', 'created']
+        extra_kwargs = {
+            'id': {'read_only': True},
+            'created': {'read_only': True}
+        }
+
+    def validate_name(self, value):
+        queryset = Group.objects.filter(name__iexact=value)
+
+        if hasattr(self, 'instance') and self.instance:
+            queryset = queryset.exclude(id=self.instance.id)
+        
+        if queryset.exists():
+            raise serializers.ValidationError("Группа с таким названием уже существует")
+        
+        return value
+
+
+class GroupNameOnlyReadSerializer(GroupBaseSerializer):
+    class Meta(GroupBaseSerializer.Meta):
         fields = ['id', 'name']
         read_only_fields = fields
 
 
-# Делаем только в чтении, тк в остальных случаях нужно явно указывать автора
-class GroupReadSerializer(serializers.ModelSerializer):
+class GroupReadSerializer(GroupBaseSerializer):
     author = UserReadSerializer(read_only=True)
     messages = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     members = serializers.SerializerMethodField()
-    class Meta:
-        model = Group
-        fields = ['id', 'name', 'author', 'members', 'created', 'messages']
+
+    class Meta(GroupBaseSerializer.Meta):
+        fields = GroupBaseSerializer.Meta.fields + ['author', 'members', 'messages']
         read_only_fields = fields
 
     def get_members(self, obj):
+    # Делаем только в чтении, тк в остальных случаях нужно явно указывать автора
         members = obj.members.all()
         members_data = UserReadSerializer(members, many=True).data
 
@@ -33,7 +53,13 @@ class GroupReadSerializer(serializers.ModelSerializer):
         return members_data
 
 
-class GroupCreateSerializer(serializers.ModelSerializer):
+class GroupCreateSerializer(GroupBaseSerializer):
+    """
+    # TO DO Сделать после авторизации
+    author = serializers.HiddenField(
+        default=serializers.CurrentUserDefault()
+    )"""
+
     author = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(),
         default=serializers.CurrentUserDefault()
@@ -44,57 +70,83 @@ class GroupCreateSerializer(serializers.ModelSerializer):
         required=False
     )
 
-    class Meta:
-        model = Group
-        fields = ['id', 'name', 'author', 'members']
+    class Meta(GroupBaseSerializer.Meta):
+        fields = GroupBaseSerializer.Meta.fields + ['author', 'members']
 
-    def validate_name(self, value):
-        if Group.objects.filter(name__iexact=value).exists():
-            raise serializers.ValidationError("Группа с таким названием уже существует")
-        return value
-    
-    def validate_members(self, members_data):
-        if len(members_data) < 1:
-            raise serializers.ValidationError("Нельзя создать группу с одним участников")
-        return members_data
+    def validate(self, data):
+        members = data.get('members', [])
+        if len(members) < 1:
+            raise serializers.ValidationError(
+                {"members": "Нельзя создать группу с одним участником"}
+            )
+        return data
+
+    def create(self, validated_data):
+        members = validated_data.pop('members', [])
+        group = Group.objects.create(**validated_data)
+        group.members.set(members)
+        return group
 
 
-class GroupUpdateSerializer(serializers.ModelSerializer):
-    members = serializers.PrimaryKeyRelatedField(
+class GroupUpdateSerializer(GroupBaseSerializer):
+    class Meta(GroupBaseSerializer.Meta):
+        fields = GroupBaseSerializer.Meta.fields
+        extra_kwargs = {
+            'name': {
+                'validators': [],
+            }
+        }
+
+    def validate(self, data):
+        if 'name' in data:
+            queryset = Group.objects.filter(name__iexact=data['name'])
+            if hasattr(self, 'instance') and self.instance:
+                queryset = queryset.exclude(pk=self.instance.pk)
+            
+            if queryset.exists():
+                raise serializers.ValidationError(
+                    {"name": "Группа с таким названием уже существует"}
+                )
+        return data
+
+
+class GroupAddMemberSerializer(serializers.Serializer):
+    members_id = serializers.PrimaryKeyRelatedField(
         many=True,
         queryset=User.objects.all(),
-        required=False
+        required=True
     )
 
-    class Meta:
-        model = Group
-        fields = ['id', 'name', 'members']
-
-    def validate_name(self, value):
-        if Group.objects.filter(name__iexact=value).exclude(id=self.instance.id).exists():
-            raise serializers.ValidationError("Группа с таким названием уже существует")
+    def validate_members_id(self, value):
+        if not value:
+            raise serializers.ValidationError("Необходимо указать хотя бы одного пользователя")
         return value
-    
-    def validate_members(self, members_data):
-        if len(members_data) < 1:
-            raise serializers.ValidationError("В группе не может остаться меньше двух участников")
-        return members_data
-# TO DO При обновлении списка юзеров не переписывать всех заново, а удалять/добавлять по одному
-# Возможно реализовать через два отдельных эндпоинта (на удаление и на добавление),
-# причём, чтобы id можно было задавать списком.
 
-class GroupDeleteSerializer(serializers.Serializer): 
+# TO DO Сделать по уму (ограничить удаление участников)
+class GroupRemoveMemberSerializer(serializers.Serializer):
+    user_ids = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=User.objects.all(),
+        required=True
+    )
+
+    def validate(self, data):
+        group = self.context['group']
+        for user in data['user_ids']:
+            if user not in group.members.all():
+                raise serializers.ValidationError(
+                    f"Пользователь {user.id} не является участником группы"
+                )
+        return data
+
+
+class GroupDeleteSerializer(serializers.Serializer):
     id = serializers.IntegerField(required=True)
 
     def validate(self, data):
-        try:
-            Group.objects.get(id=data['id'])
-        except ObjectDoesNotExist:
+        if not Group.objects.filter(id=data['id']).exists():
             raise serializers.ValidationError("Группа не найдена")
-
         return data
 
     def delete(self):
-        group = Group.objects.get(id=self.validated_data['id'])
-        group.delete()
-        return
+        Group.objects.filter(id=self.validated_data['id']).delete()
