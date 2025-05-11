@@ -1,7 +1,5 @@
 from rest_framework import serializers
-from django.core.exceptions import ObjectDoesNotExist
 
-from django.contrib.auth.models import User
 from source.api.models import Profile
 from .user_serializers import (
     UserReadSerializer,
@@ -10,78 +8,87 @@ from .user_serializers import (
     UserDeleteSerializer
 )
 
-class ProfileReadSerializer(serializers.ModelSerializer):
+MIN_AGE = 1
+MAX_AGE = 200
+
+
+class ProfileBaseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = ['id', 'age', 'gender', 'birth_date', 'photo']
+        extra_kwargs = {
+            'id': {'read_only': True},
+            'age': {'required': False},
+            'gender': {'required': False},
+            'photo': {'required': False}
+        }
+    
+    def validate_age(self, value):
+        if value < MIN_AGE or value > MAX_AGE:
+            raise serializers.ValidationError("Некорректное значение возраста")
+        return value
+
+
+class ProfileReadSerializer(ProfileBaseSerializer):
     user = UserReadSerializer(read_only=True)
     friends = UserReadSerializer(many=True, read_only=True)
 
-    class Meta:
-        model = Profile
-        fields = ['id', 'user', 'photo', 'gender', 'friends', 'birth_date']
+    class Meta(ProfileBaseSerializer.Meta):
+        fields = ProfileBaseSerializer.Meta.fields + ['user', 'friends']
         read_only_fields = fields
 
 
-class ProfileCreateSerializer(serializers.ModelSerializer):
+class ProfileCreateSerializer(ProfileBaseSerializer):
     user = UserCreateSerializer()
 
-    class Meta:
-        model = Profile
-        fields = ['id', 'user', 'gender', 'birth_date']
+    class Meta(ProfileBaseSerializer.Meta):
+        fields = ProfileBaseSerializer.Meta.fields + ['user']
 
     def create(self, validated_data):
         user_data = validated_data.pop('user')
-        user = User.objects.create(**user_data)
-        profile = Profile.objects.create(user=user, **validated_data)
+        user_serializer = UserCreateSerializer(data=user_data)
+        user_serializer.is_valid(raise_exception=True)
+        user = user_serializer.save()
+        
+        return Profile.objects.create(user=user, **validated_data)
 
-        return profile
 
-
-class ProfileUpdateSerializer(serializers.ModelSerializer):
+# TO DO Сделать добавление друзей как при добавлении юзера в группу
+class ProfileUpdateSerializer(ProfileBaseSerializer):
     user = UserUpdateSerializer(required=False)
-    photo = serializers.ImageField(required=False)
     friends = serializers.PrimaryKeyRelatedField(
         many=True, 
         queryset=Profile.objects.all(),
         required=False
     )
 
-    class Meta:
-        model = Profile
-        fields = ['id', 'user', 'photo', 'gender', 'birth_date', 'friends']
+    class Meta(ProfileBaseSerializer.Meta):
+        fields = ProfileBaseSerializer.Meta.fields + ['user', 'friends']
 
     def update(self, instance, validated_data):
         user_data = validated_data.pop('user', None)
         instance = super().update(instance, validated_data)
 
         if user_data:
-            user = instance.user
-            for attr, value in user_data.items():
-                setattr(user, attr, value)
-            user.save()
+            user_serializer = UserUpdateSerializer(instance.user, data=user_data, partial=True)
+            user_serializer.is_valid(raise_exception=True)
+            user_serializer.save()
         
         return instance
 
-
-class ProfileDeleteSerializer(serializers.Serializer):
-    id = serializers.IntegerField(required=True)
+class ProfileDeleteSerializer(ProfileBaseSerializer):
     user = UserDeleteSerializer(required=False)
 
-    def validate(self, data):
-        try:
-            user = User.objects.get(id=data['id'])
-        except ObjectDoesNotExist:
-            raise serializers.ValidationError("Профиль не найден")
+    class Meta(ProfileBaseSerializer.Meta):
+        fields = ['id']
 
+    def validate(self, data):
+        if not Profile.objects.filter(id=data['id']).exists():
+            raise serializers.ValidationError("Профиль не найден")
         return data
 
     def delete(self):
-        try:   
-            user_id = self.validated_data['user']['id']
-            user = User.objects.get(id=user_id)
-            user.delete()
-
-            profile_id = self.validated_data['id']
-            profile = Profile.objects.get(id=profile_id)
-            profile.delete()
-        except ObjectDoesNotExist:
-            raise serializers.ValidationError("Профиль или пользователь не найдены")
-        return
+        profile = Profile.objects.get(id=self.validated_data['id'])
+        user = profile.user
+        profile.delete()
+        user.delete()
