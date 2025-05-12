@@ -15,7 +15,9 @@ from source.api.views import (
     ProfileRetrieveView,
     ProfileUpdateView,
     ProfileDestroyView,
-    ProfileFriendsPostsRetrieveView
+    ProfileFriendsPostsRetrieveView,
+    ProfileAddFriendsView,
+    ProfileRemoveFriendsView
 )
 from source.api.views import (
     PostRetrieveAllView,
@@ -66,6 +68,8 @@ urlpatterns = [
     path('profiles/<int:pk>/update/', ProfileUpdateView.as_view(), name='profile-update'),
     path('profiles/<int:pk>/delete/', ProfileDestroyView.as_view(), name='profile-destroy'),
     path('profiles/<int:profile_id>/friends/posts/', ProfileFriendsPostsRetrieveView.as_view(), name='profile-friends-posts'), # Эндпоинт для постов друзей юзера (профиля)
+    path('profiles/<int:profile_id>/friends/add/', ProfileAddFriendsView.as_view(), name='profile-add-friends'),
+    path('profiles/<int:profile_id>/friends/remove/', ProfileRemoveFriendsView.as_view(), name='profile-remove-friends'),
 
     # Маршруты для Post
     path('posts/', PostRetrieveAllView.as_view(), name='post-retrieve-all'),
@@ -80,8 +84,8 @@ urlpatterns = [
     path('groups/<int:pk>/', GroupRetrieveView.as_view(), name='group-retrieve'),
     path('groups/<int:pk>/update/', GroupUpdateView.as_view(), name='group-update'),
     path('groups/<int:pk>/delete/', GroupDestroyView.as_view(), name='group-destroy'),
-    path('groups/<int:group_id>/add_members/', GroupAddMembersView.as_view(), name='group-add-members'),
-    path('groups/<int:group_id>/remove_members/', GroupRemoveMembersView.as_view(), name='group-remove-members'),
+    path('groups/<int:group_id>/members/add/', GroupAddMembersView.as_view(), name='group-add-members'),
+    path('groups/<int:group_id>/members/remove/', GroupRemoveMembersView.as_view(), name='group-remove-members'),
 
     # Маршруты для Message
     path('messages/', MessageRetrieveAllView.as_view(), name='message-retrieve-all'),
