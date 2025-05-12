@@ -1,9 +1,6 @@
 from rest_framework import generics
 from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import generics
-from rest_framework.pagination import PageNumberPagination
-from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import render, redirect
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import login
@@ -13,18 +10,12 @@ from django import forms
 from django.contrib.auth.models import User
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-from rest_framework import status
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from django.contrib.auth.models import User
-from django.contrib.auth import authenticate
 from rest_framework.response import Response
 from django.contrib.auth import update_session_auth_hash
-from django.contrib.auth.forms import PasswordChangeForm
 from django.http import JsonResponse
-from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import status
+from source.api.serializers.user_serializers import UserRegistrationSerializer
 
 from source.api.models import User, Profile, Post, Group, Message, Like
 from source.api.serializers.user_serializers import (
@@ -79,6 +70,7 @@ class UserRetrieveAllView(generics.ListAPIView):
 class UserCreateView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserCreateSerializer
+    permission_classes = []
 
 class UserUpdateView(generics.UpdateAPIView):
     queryset = User.objects.all()
@@ -90,10 +82,12 @@ class UserDestroyView(generics.DestroyAPIView):
 
 
 # ---------------- Профиль пользователя  ----------------
+@permission_classes([IsAuthenticated])
 class ProfileRetrieveView(generics.RetrieveAPIView):
     queryset = Profile.objects.all()
     serializer_class = ProfileReadSerializer
 
+@permission_classes([IsAuthenticated])
 class ProfileRetrieveAllView(generics.ListAPIView):
     queryset = Profile.objects.all()
     serializer_class = ProfileReadSerializer
@@ -101,14 +95,17 @@ class ProfileRetrieveAllView(generics.ListAPIView):
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['gender', 'birth_date']
 
+@permission_classes([IsAuthenticated])
 class ProfileCreateView(generics.CreateAPIView):
     queryset = Profile.objects.all()
     serializer_class = ProfileCreateSerializer
 
+@permission_classes([IsAuthenticated])
 class ProfileUpdateView(generics.UpdateAPIView):
     queryset = Profile.objects.all()
     serializer_class = ProfileUpdateSerializer
 
+@permission_classes([IsAuthenticated])
 class ProfileDestroyView(generics.DestroyAPIView):
     queryset = Profile.objects.all()
     serializer_class = ProfileDeleteSerializer
@@ -197,6 +194,7 @@ class MessageDestroyView(generics.DestroyAPIView):
 class LikeRetrieveView(generics.RetrieveAPIView):
     queryset = Like.objects.all()
     serializer_class = UserReadSerializer
+    permission_classes = []
 
 class LikeRetrieveAllView(generics.ListAPIView):
     queryset = Like.objects.all()
@@ -204,14 +202,19 @@ class LikeRetrieveAllView(generics.ListAPIView):
     pagination_class = PageNumberPagination
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['user', 'content_type', 'object_id', 'timestamp']
+    permission_classes = []
+    
 
 class LikeCreateView(generics.CreateAPIView):
     queryset = Like.objects.all()
     serializer_class = LikeCreateSerializer
+    permission_classes = []
+
 
 class LikeDestroyView(generics.DestroyAPIView):
     queryset = Like.objects.all()
     serializer_class = LikeDeleteSerializer
+    permission_classes = []
     
     
 def index(request):
@@ -247,6 +250,15 @@ def register(request):
     return render(request, 'meetly/register.html', {'form': form})
 
 
+class RegisterUser(APIView):
+    def post(self, request):
+        serializer = UserRegistrationSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()  # Создаем пользователя
+            return Response({"message": "Пользователь успешно зарегистрирован"}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 def login_view(request):
     if request.method == 'POST':
         form = AuthenticationForm(request, data=request.POST)
@@ -264,7 +276,6 @@ def login_view(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def current_user(request):
     return Response({
         'username': request.user.username,
