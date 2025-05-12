@@ -37,7 +37,9 @@ from source.api.serializers.profile_serializers import (
     ProfileReadSerializer,
     ProfileCreateSerializer,
     ProfileUpdateSerializer,
-    ProfileDeleteSerializer
+    ProfileDeleteSerializer,
+    ProfileAddFriendsSerializer,
+    ProfileRemoveFriendsSerializer
 )
 from source.api.serializers.post_serializers import (
     PostContentOnlyReadSerializer,
@@ -151,6 +153,45 @@ class ProfileFriendsPostsRetrieveView(generics.ListAPIView):
             return Post.objects.none()
 
 
+class ProfileAddFriendsView(generics.GenericAPIView):
+    serializer_class = ProfileAddFriendsSerializer
+
+    def post(self, request, profile_id):
+        profile = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        profile.friends.add(*serializer.validated_data['friends_id'])
+        return Response(
+            {"status": "Друзья успешно добавлены"},
+            status=status.HTTP_200_OK
+        )
+
+    def get_object(self):
+        return Profile.objects.get(pk=self.kwargs['profile_id'])
+
+
+class ProfileRemoveFriendsView(generics.GenericAPIView):
+    serializer_class = ProfileRemoveFriendsSerializer
+
+    def post(self, request, profile_id):
+        profile = self.get_object()
+        serializer = ProfileRemoveFriendsSerializer(
+            data=request.data,
+            context={'profile': profile}
+        )
+        serializer.is_valid(raise_exception=True)
+
+        profile.friends.remove(*serializer.validated_data['friends'])
+        return Response(
+            {"status": "Друзья успешно удалены"},
+            status=status.HTTP_200_OK
+        )
+
+    def get_object(self):
+        return Profile.objects.get(pk=self.kwargs['profile_id'])
+
+
 
 # ---------------- Пост ----------------
 class PostRetrieveView(generics.RetrieveAPIView):
@@ -202,7 +243,7 @@ class GroupDestroyView(generics.DestroyAPIView):
     queryset = Group.objects.all()
     serializer_class = GroupDeleteSerializer
 
-
+# TO DO Возможно стоит переделать через метод PUT/PATCH
 class GroupAddMembersView(generics.GenericAPIView):
     serializer_class = GroupAddMemberSerializer
 
@@ -289,6 +330,12 @@ class LikeDestroyView(generics.DestroyAPIView):
     queryset = Like.objects.all()
     serializer_class = LikeDeleteSerializer
 
+
+
+# ---------------- Регистрация ----------------
+"""class IsProfileOwner(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        return request.user == obj.user"""
 
 
 # TO DO Добавить файл бекенда для аутентификации

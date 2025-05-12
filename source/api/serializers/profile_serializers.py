@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from source.api.models import Profile
+from source.api.models import User, Profile
 from .user_serializers import (
     UserReadSerializer,
     UserCreateSerializer,
@@ -53,7 +53,6 @@ class ProfileCreateSerializer(ProfileBaseSerializer):
         return Profile.objects.create(user=user, **validated_data)
 
 
-# TO DO Сделать добавление друзей как при добавлении юзера в группу
 class ProfileUpdateSerializer(ProfileBaseSerializer):
     user = UserUpdateSerializer(required=False)
     friends = serializers.PrimaryKeyRelatedField(
@@ -75,6 +74,74 @@ class ProfileUpdateSerializer(ProfileBaseSerializer):
             user_serializer.save()
         
         return instance
+
+# TO DO Сделать подтверждение добавления в друзья
+class ProfileAddFriendsSerializer(serializers.Serializer):
+    friends_id = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Profile.objects.all(),
+        required=True
+    )
+
+    def validate_friends_id(self, value):
+        if not value:
+            raise serializers.ValidationError("Необходимо указать хотя бы одного друга")
+
+        if self.context['request'].user.profile.id in [p.id for p in value]:
+            raise serializers.ValidationError("Нельзя добавить самого себя в друзья")
+        
+        unique_ids = set()
+        duplicate_ids = set()
+        
+        for profile in value:
+            if profile.id in unique_ids:
+                duplicate_ids.add(profile.id)
+            unique_ids.add(profile.id)
+            
+        if duplicate_ids:
+            raise serializers.ValidationError(f"Нельзя добавлять одного человека несколько раз. Дубликаты: {', '.join(map(str, duplicate_ids))}")
+
+        existing_friends = set(
+            self.context['request'].user.profile.friends.filter(id__in=unique_ids).values_list('id', flat=True)
+        )
+        
+        if existing_friends:
+            raise serializers.ValidationError(f"Эти пользователи уже у вас в друзьях: {', '.join(map(str, existing_friends))}")
+
+        return value
+
+# TO DO Сделать по уму (отображать только друзей профиля)
+class ProfileRemoveFriendsSerializer(serializers.Serializer):
+    friends_id = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=True
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'profile' in self.context:
+            self.profile = self.context['profile']
+
+    def validate_friends_id(self, value):
+        if not value:
+            raise serializers.ValidationError("Необходимо указать хотя бы одного друга")
+
+        if self.profile.id in value:
+            raise serializers.ValidationError("Нельзя удалить самого себя из друзей")
+
+        friend_ids = set(self.profile.friends.values_list('id', flat=True))
+        invalid_ids = set(value) - friend_ids
+
+        if invalid_ids:
+            raise serializers.ValidationError(
+                f"Пользователи с ID {invalid_ids} не являются друзьями профиля"
+            )
+        return value
+
+    def validate(self, data):
+        data['friends'] = Profile.objects.filter(id__in=data['friends_id'])
+        return data
+
 
 class ProfileDeleteSerializer(ProfileBaseSerializer):
     user = UserDeleteSerializer(required=False)
