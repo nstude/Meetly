@@ -110,7 +110,8 @@ class ProfileAddFriendsSerializer(serializers.Serializer):
 
         return value
 
-# TO DO Сделать по уму (отображать только друзей профиля)
+# TO DO Подумать над реализацией
+# Возможно есть дргуие пути, которые не учтены
 class ProfileRemoveFriendsSerializer(serializers.Serializer):
     friends_id = serializers.ListField(
         child=serializers.IntegerField(),
@@ -120,26 +121,36 @@ class ProfileRemoveFriendsSerializer(serializers.Serializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if 'profile' in self.context:
-            self.profile = self.context['profile']
+            self.friend_ids = set(self.context['profile'].friends.values_list('id', flat=True))
+            self.profile_id = self.context['profile'].id
 
     def validate_friends_id(self, value):
         if not value:
             raise serializers.ValidationError("Необходимо указать хотя бы одного друга")
 
-        if self.profile.id in value:
+        if self.profile_id in value:
             raise serializers.ValidationError("Нельзя удалить самого себя из друзей")
 
-        friend_ids = set(self.profile.friends.values_list('id', flat=True))
-        invalid_ids = set(value) - friend_ids
+        input_ids = set(value)
 
+        invalid_ids = input_ids - self.friend_ids
         if invalid_ids:
             raise serializers.ValidationError(
-                f"Пользователи с ID {invalid_ids} не являются друзьями профиля"
+                f"ID {invalid_ids} не найдены среди ваших друзей"
             )
-        return value
+        
+        return list(input_ids)
 
     def validate(self, data):
-        data['friends'] = Profile.objects.filter(id__in=data['friends_id'])
+        friends = Profile.objects.filter(id__in=data['friends_id'])
+        if len(friends) != len(data['friends_id']):
+            found_ids = {f.id for f in friends}
+            missing_ids = set(data['friends_id']) - found_ids
+            raise serializers.ValidationError({
+                'friends_id': f"Профили с ID {missing_ids} не найдены"
+            })
+        
+        data['friends'] = friends
         return data
 
 
