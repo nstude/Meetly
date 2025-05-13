@@ -122,21 +122,44 @@ class GroupAddMemberSerializer(serializers.Serializer):
             raise serializers.ValidationError("Необходимо указать хотя бы одного пользователя")
         return value
 
-# TO DO Сделать по уму (ограничить удаление участников)
+# TO DO Подумать над реализацией
 class GroupRemoveMemberSerializer(serializers.Serializer):
-    user_ids = serializers.PrimaryKeyRelatedField(
-        many=True,
-        queryset=User.objects.all(),
+    user_ids = serializers.ListField(
+        child=serializers.IntegerField(),
         required=True
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'group' in self.context:
+            self.member_ids = set(
+                self.context['group'].members.values_list('id', flat=True)
+            )
+            self.group = self.context['group']
+
+    def validate_user_ids(self, value):
+        if not value:
+            raise serializers.ValidationError("Необходимо указать хотя бы одного участника")
+
+        input_ids = set(value)
+        invalid_ids = input_ids - self.member_ids
+        if invalid_ids:
+            raise serializers.ValidationError(
+                f"Пользователи с ID {invalid_ids} не являются участниками группы"
+            )
+
+        return list(input_ids)
+
     def validate(self, data):
-        group = self.context['group']
-        for user in data['user_ids']:
-            if user not in group.members.all():
-                raise serializers.ValidationError(
-                    f"Пользователь {user.id} не является участником группы"
-                )
+        users = User.objects.filter(id__in=data['user_ids'])
+        if len(users) != len(data['user_ids']):
+            found_ids = {u.id for u in users}
+            missing_ids = set(data['user_ids']) - found_ids
+            raise serializers.ValidationError({
+                'user_ids': f"Пользователи с ID {missing_ids} не найдены"
+            })
+        
+        data['users'] = users
         return data
 
 
