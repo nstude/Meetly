@@ -28,5 +28,7 @@ urlpatterns = [
     path('api/user/', current_user, name='current_user'),
     path('change-password/', views.change_password_page, name='change-password-page'),
     path('api/change-password/', views.ChangePasswordView.as_view(), name='change-password-api'),
+    path('meetly/friends/', views.friends_page, name='friends'),
+    path('api/add_friend/', views.AddFriendView.as_view(), name='add_friend')
      
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
