@@ -3,17 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <title>Вход</title>
+    <style>
+        body {
+            background-color: #3498db; /* Синий фон */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: sans-serif;
+        }
+
+        .login-container {
+            background-color: #fff; /* Белое окно */
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            width: 300px; /* Фиксированная ширина для аккуратного вида */
+        }
+
+        .login-container h2 {
+            margin-bottom: 20px;
+            color: #3498db;
+        }
+
+        .login-container label {
+            display: block;
+            text-align: left;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        .login-container input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box; /* Важно для правильной ширины */
+        }
+
+        .login-container button {
+            background-color: #3498db; /* Синяя кнопка */
+            color: #fff;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+            width: 100%; /* Кнопка на всю ширину контейнера */
+        }
+
+        .login-container button:hover {
+            background-color: #2980b9; /* Более темный синий при наведении */
+        }
+
+        .error {
+            color: red;
+            margin-bottom: 15px;
+        }
+    </style>
 </head>
 <body>
-    <h2>Войти</h2>
-    <div id="error" style="color:red;"></div>
-    <form id="login-form">
-        <label>Имя пользователя:</label><br>
-        <input type="text" id="username"><br>
-        <label>Пароль:</label><br>
-        <input type="password" id="password"><br><br>
-        <button type="submit">Войти</button>
-    </form>
+    <div class="login-container">
+        <h2>Войти</h2>
+        <div class="error" id="error">{{ error }}</div>
+        <form id="login-form">
+            <label for="username">Имя пользователя:</label>
+            <input type="text" id="username" name="username">
+
+            <label for="password">Пароль:</label>
+            <input type="password" id="password" name="password">
+
+            <button type="submit">Войти</button>
+        </form>
+    </div>
 
     <script>
         document.getElementById('login-form').addEventListener('submit', async function(e) {
@@ -33,13 +99,9 @@
             const data = await response.json();
 
             if (response.ok) {
-                // Сохраняем токены в localStorage
                 localStorage.setItem('access', data.access);
                 localStorage.setItem('refresh', data.refresh);
-
-                // Перенаправляем или показываем сообщение
-                alert('Успешный вход!');
-                window.location.href = '/'; // Пример
+                window.location.href = '/';
             } else {
                 document.getElementById('error').textContent = 'Имя пользователя или пароль неверны';
             }

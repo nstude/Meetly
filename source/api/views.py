@@ -6,15 +6,18 @@ from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
 from django_filters.rest_framework import DjangoFilterBackend
-
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status, generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-
+from django.contrib.auth.decorators import login_required
 from source.api.models import User, Profile, Post, Group, Message, Like
+from django.dispatch import receiver
+from django.views.decorators.http import require_POST
+from django.db.models.signals import post_save
 from source.api.serializers.user_serializers import (
     UserReadSerializer,
     UserCreateSerializer,
@@ -106,13 +109,32 @@ class UserPostsRetrieveView(generics.ListAPIView):
 class ProfileRetrieveView(generics.RetrieveAPIView):
     queryset = Profile.objects.all()
     serializer_class = ProfileReadSerializer
+    permission_classes = [IsAuthenticated]  
 
+    def retrieve(self, request, *args, **kwargs):
+        profile = self.get_object()
+        if request.user != profile.user:
+            serializer = self.get_serializer(profile)
+            data = serializer.data
+            data.pop('friends', None)  
+            return Response(data)
+        return super().retrieve(request, *args, **kwargs)
+
+#TO DO для всех пользователей убрать friends, оставить только для своего профиля
 class ProfileRetrieveAllView(generics.ListAPIView):
     queryset = Profile.objects.all()
     serializer_class = ProfileReadSerializer
     pagination_class = PageNumberPagination
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['gender', 'birth_date']
+    permission_classes = [IsAuthenticated]  
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        if self.request.user != instance.user:
+            representation.pop('friends', None)  
+        
+        return representation
 
 class ProfileCreateView(generics.CreateAPIView):
     queryset = Profile.objects.all()
@@ -185,6 +207,7 @@ class ProfileRemoveFriendsView(generics.GenericAPIView):
 class PostRetrieveView(generics.RetrieveAPIView):
     queryset = Post.objects.all()
     serializer_class = PostReadSerializer
+    
 
 class PostRetrieveAllView(generics.ListAPIView):
     queryset = Post.objects.all()
@@ -192,6 +215,12 @@ class PostRetrieveAllView(generics.ListAPIView):
     pagination_class = PageNumberPagination
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['author', 'published']
+    def get_queryset(self):
+        user = self.request.user
+        profile = user.profile
+        friends = profile.friends.all()
+        allowed_users = [user] + [friend.user for friend in friends]
+        return Post.objects.filter(author__in=allowed_users)
 
 class PostCreateView(generics.CreateAPIView):
     queryset = Post.objects.all()
@@ -218,6 +247,9 @@ class GroupRetrieveAllView(generics.ListAPIView):
     pagination_class = PageNumberPagination
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['name', 'author', 'created']
+    def get_queryset(self):
+        user = self.request.user
+        return Group.objects.filter(members=user)
 
 class GroupCreateView(generics.CreateAPIView):
     queryset = Group.objects.all()
@@ -276,6 +308,10 @@ class GroupRemoveMembersView(generics.GenericAPIView):
 class MessageRetrieveView(generics.RetrieveAPIView):
     queryset = Message.objects.all()
     serializer_class = MessageReadSerializer
+    def get_queryset(self): # для отображения сообщений из групп в которых состоит пользователь
+        user = self.request.user
+        groups = user.group_memberships.all()
+        return Message.objects.filter(group__in=groups)
 
 class MessageRetrieveAllView(generics.ListAPIView):
     queryset = Message.objects.all()
@@ -283,6 +319,11 @@ class MessageRetrieveAllView(generics.ListAPIView):
     pagination_class = PageNumberPagination
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['author', 'group', 'post', 'timestamp']
+    def get_queryset(self):
+        user = self.request.user
+        groups = user.group_memberships.all()
+        return Message.objects.filter(group__in=groups)
+    
 
 class MessageCreateView(generics.CreateAPIView):
     queryset = Message.objects.all()
@@ -346,7 +387,7 @@ class RegistrationForm(forms.ModelForm):
             raise forms.ValidationError('Пароли не совпадают.')
         return password_confirm
 
-
+@csrf_exempt
 def register(request):
     if request.method == 'POST':
         form = RegistrationForm(request.POST)
@@ -354,6 +395,10 @@ def register(request):
             user = form.save(commit=False)  
             user.set_password(form.cleaned_data['password'])
             user.save() 
+            
+            profile = Profile(user=user)
+            profile.save()
+            
             return redirect('index')
     else:
         form = RegistrationForm()
@@ -411,3 +456,47 @@ class ChangePasswordView(APIView):
 
 def change_password_page(request):
     return render(request, 'meetly/change-password.html')
+
+def friends_page(request):
+    profile = request.user.profile 
+    friends_profiles = profile.friends.all() 
+    friends = User.objects.filter(profile__in=friends_profiles)  
+    others = User.objects.exclude(profile__in=friends_profiles).exclude(id=request.user.id)  
+    context = {
+        'friends': friends,
+        'others': others,
+    }
+    return render(request, 'friends.html', context)
+
+@receiver(post_save, sender=User)
+def create_profile(sender, instance, created, **kwargs):
+    if created:
+        Profile.objects.create(user=instance)
+        
+
+class AddFriendView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user_id = request.data.get('profile_id')
+        if not user_id:
+            return Response({'error': 'ID профиля обязателен'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(id=user_id)
+            friend_profile = user.profile
+            profile = request.user.profile
+            if friend_profile in profile.friends.all():
+                return Response({'error': 'Этот пользователь уже в списке ваших друзей.'}, status=status.HTTP_400_BAD_REQUEST)
+            profile.friends.add(friend_profile)
+
+            return Response({'success': True}, status=status.HTTP_200_OK)
+
+        except Profile.DoesNotExist:
+            return Response({'error': 'Профиль не найден'}, status=status.HTTP_404_NOT_FOUND)
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.exception("Ошибка при добавлении в друзья")
+            return Response({'error': 'Произошла ошибка на сервере'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)  
