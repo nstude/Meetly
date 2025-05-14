@@ -31,13 +31,7 @@ class MessageReadSerializer(MessageBaseSerializer):
 
 # TO DO Понять, стоит ли перерабатывать отправку сообщений (чтобы id объекта задавался не в теле, а в запросе)
 class MessageCreateSerializer(MessageBaseSerializer):
-    """
-    # TO DO Аналогично посту
     author = serializers.HiddenField(
-        default=serializers.CurrentUserDefault()
-    )"""
-    author = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(),
         default=serializers.CurrentUserDefault()
     )
     post = serializers.PrimaryKeyRelatedField(
