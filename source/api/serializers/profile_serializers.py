@@ -44,25 +44,39 @@ class ProfileCreateSerializer(ProfileBaseSerializer):
     class Meta(ProfileBaseSerializer.Meta):
         fields = ProfileBaseSerializer.Meta.fields + ['user']
 
+    def validate(self, data):
+        user_data = data.get('user', {})
+        if User.objects.filter(username=user_data.get('username')).exists():
+            raise serializers.ValidationError(
+                {"username": "Пользователь с таким именем уже существует"}
+            )
+        if User.objects.filter(email=user_data.get('email')).exists():
+            raise serializers.ValidationError(
+                {"email": "Пользователь с таким email уже существует"}
+            )
+        return data
+
     def create(self, validated_data):
         user_data = validated_data.pop('user')
+
         user_serializer = UserCreateSerializer(data=user_data)
         user_serializer.is_valid(raise_exception=True)
         user = user_serializer.save()
-        
-        return Profile.objects.create(user=user, **validated_data)
+
+        if hasattr(user, 'profile'):
+            raise serializers.ValidationError(
+                "Профиль для этого пользователя уже существует"
+            )
+
+        profile = Profile.objects.create(user=user, **validated_data)
+        return profile
 
 
 class ProfileUpdateSerializer(ProfileBaseSerializer):
     user = UserUpdateSerializer(required=False)
-    friends = serializers.PrimaryKeyRelatedField(
-        many=True, 
-        queryset=Profile.objects.all(),
-        required=False
-    )
 
     class Meta(ProfileBaseSerializer.Meta):
-        fields = ProfileBaseSerializer.Meta.fields + ['user', 'friends']
+        fields = ProfileBaseSerializer.Meta.fields + ['user']
 
     def update(self, instance, validated_data):
         user_data = validated_data.pop('user', None)
@@ -75,7 +89,7 @@ class ProfileUpdateSerializer(ProfileBaseSerializer):
         
         return instance
 
-# TO DO Сделать подтверждение добавления в друзья
+
 class ProfileAddFriendsSerializer(serializers.Serializer):
     friends_id = serializers.PrimaryKeyRelatedField(
         many=True,
@@ -84,31 +98,35 @@ class ProfileAddFriendsSerializer(serializers.Serializer):
     )
 
     def validate_friends_id(self, value):
+        current_profile = self.context['request'].user.profile
+        
         if not value:
             raise serializers.ValidationError("Необходимо указать хотя бы одного друга")
 
-        if self.context['request'].user.profile.id in [p.id for p in value]:
+        if current_profile in value:
             raise serializers.ValidationError("Нельзя добавить самого себя в друзья")
-        
-        unique_ids = set()
-        duplicate_ids = set()
-        
-        for profile in value:
-            if profile.id in unique_ids:
-                duplicate_ids.add(profile.id)
-            unique_ids.add(profile.id)
-            
-        if duplicate_ids:
-            raise serializers.ValidationError(f"Нельзя добавлять одного человека несколько раз. Дубликаты: {', '.join(map(str, duplicate_ids))}")
 
-        existing_friends = set(
-            self.context['request'].user.profile.friends.filter(id__in=unique_ids).values_list('id', flat=True)
-        )
-        
-        if existing_friends:
-            raise serializers.ValidationError(f"Эти пользователи уже у вас в друзьях: {', '.join(map(str, existing_friends))}")
+        ids = [p.id for p in value]
+        if len(ids) != len(set(ids)):
+            raise serializers.ValidationError("Найдены дубликаты в списке друзей")
 
+        existing_ids = current_profile.friends.filter(id__in=ids).values_list('id', flat=True)
+        if existing_ids:
+            raise serializers.ValidationError(
+                f"Эти пользователи уже в друзьях: {', '.join(map(str, existing_ids))}"
+            )
+        
         return value
+    
+    def create(self, validated_data):
+        current_profile = self.context['request'].user.profile
+        friends_to_add = validated_data['friends_id']
+
+        current_profile.friends.add(*friends_to_add)
+        
+        return {
+            'message': 'Друзья успешно добавлены'
+        }
 
 # TO DO Подумать над реализацией
 # Возможно есть дргуие пути, которые не учтены
