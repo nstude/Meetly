@@ -10,9 +10,9 @@ from django.contrib.auth import authenticate, login  # Import authenticate and l
 ALLOWED_PATHS = [
     reverse('login'),  # Страница логина (используем reverse для имени URL)
     reverse('register'),  # Страница регистрации (используем reverse для имени URL)
-    '/api/token/',  # API для получения токенов
-    '/api/token/refresh/',  # API для обновления токенов
-    '/api/token/verify/',  # API для проверки токенов
+    '/token/',  # API для получения токенов
+    '/token/refresh/',  # API для обновления токенов
+    '/token/verify/',  # API для проверки токенов
     '/admin/',  # Страница админки
     '/static/',  # Статичные файлы
     '/media/',   # Медиа файлы

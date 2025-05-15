@@ -1,6 +1,6 @@
 
 from django.urls import path
-from source.api.views import (
+from source.api.views.api import (
     UserRetrieveAllView,
     UserCreateView,
     UserRetrieveView,
@@ -9,7 +9,7 @@ from source.api.views import (
     UserGroupsRetrieveView,
     UserPostsRetrieveView
 )
-from source.api.views import (
+from source.api.views.api import (
     ProfileRetrieveAllView,
     ProfileCreateView,
     ProfileRetrieveView,
@@ -19,14 +19,14 @@ from source.api.views import (
     ProfileAddFriendsView,
     ProfileRemoveFriendsView
 )
-from source.api.views import (
+from source.api.views.api import (
     PostRetrieveAllView,
     PostCreateView,
     PostRetrieveView,
     PostUpdateView,
     PostDestroyView
 )
-from source.api.views import (
+from source.api.views.api import (
     GroupRetrieveAllView,
     GroupCreateView,
     GroupRetrieveView,
@@ -35,14 +35,14 @@ from source.api.views import (
     GroupAddMembersView,
     GroupRemoveMembersView
 )
-from source.api.views import (
+from source.api.views.api import (
     MessageRetrieveAllView,
     MessageCreateView,
     MessageRetrieveView,
     MessageUpdateView,
     MessageDestroyView
 )
-from source.api.views import (
+from source.api.views.api import (
     LikeRetrieveAllView,
     LikeCreateView,
     LikeRetrieveView,
