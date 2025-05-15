@@ -48,6 +48,9 @@ from source.api.views.api import (
     LikeRetrieveView,
     LikeDestroyView
 )
+from source.api.views.api import (
+    ChangePasswordView
+)
 
 
 
@@ -60,6 +63,7 @@ urlpatterns = [
     path('users/<int:pk>/delete/', UserDestroyView.as_view(), name='user-destroy'),
     path('users/<int:user_id>/groups/', UserGroupsRetrieveView.as_view(), name='user-groups'), # Эндпоинт для групп юзера
     path('users/<int:user_id>/posts/', UserPostsRetrieveView.as_view(), name='user-posts'), # Эндпоинт для постов юзера
+    path('users/change-password/', ChangePasswordView.as_view(), name='change-password'),
 
     # Маршруты для Profile
     path('profiles/', ProfileRetrieveAllView.as_view(), name='profile-retrieve-all'),

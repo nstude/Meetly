@@ -21,6 +21,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 
 from source.api.models import User, Profile, Post, Group, Message, Like
+from source.api.serializers.auth_serializers import ChangePasswordSerializer
 from source.api.serializers.user_serializers import (
     UserReadSerializer,
     UserCreateSerializer,
@@ -105,7 +106,30 @@ class UserPostsRetrieveView(generics.ListAPIView):
     def get_queryset(self):
         user_id = self.kwargs['user_id']
         return Post.objects.filter(author__id=user_id)
+
+# ---------------- Смена пароля ----------------
+class ChangePasswordView(generics.UpdateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ChangePasswordSerializer
     
+    def update(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        user = request.user
+        if not user.check_password(serializer.data['old_password']):
+            return Response(
+                {"error": "Неверный старый пароль"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if len(serializer.data['new_password']) < 8:
+            return JsonResponse({'detail': 'Пароль должен быть не менее 8 символов.'}, status=400)
+        
+        user.set_password(serializer.data['new_password'])
+        user.save()
+        
+        return Response({"message": "Пароль успешно обновлён"})
 
 
 # ---------------- Профиль пользователя  ----------------

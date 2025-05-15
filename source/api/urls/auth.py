@@ -5,14 +5,14 @@ from django.conf.urls.static import static
 
 from source.api.views.auth import (
     RegisterView,
-    login_view
+    LoginView,
+    LogoutView
 )
 
 from source.api.views.pages import change_password_page
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
-    path('login/', login_view, name='login'),
-    path('logout/', auth_views.LogoutView.as_view(next_page='index'), name='logout'),
-    path('change-password/', change_password_page, name='change-password-page'),
+    path('login/', LoginView.as_view(), name='login'),
+    path('logout/', LogoutView.as_view(), name='logout'),
 ]
