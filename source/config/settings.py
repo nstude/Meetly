@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'source.api.test',
     'source.api.serializers',
     'rest_framework',
+    'rest_framework_simplejwt.token_blacklist'
 ]
 
 WSGI_APPLICATION = 'source.config.wsgi.application'

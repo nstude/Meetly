@@ -18,6 +18,9 @@ from source.api.models import User, Profile, Post, Group, Message, Like
 from django.dispatch import receiver
 from django.views.decorators.http import require_POST
 from django.db.models.signals import post_save
+from django.contrib.auth import logout
+from rest_framework.authtoken.models import Token
+from rest_framework_simplejwt.tokens import RefreshToken
 from source.api.serializers.user_serializers import (
     UserReadSerializer,
     UserCreateSerializer,
@@ -500,3 +503,17 @@ class AddFriendView(APIView):
             logger = logging.getLogger(__name__)
             logger.exception("Ошибка при добавлении в друзья")
             return Response({'error': 'Произошла ошибка на сервере'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)  
+        
+
+
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            refresh_token = request.data["refresh"]
+            token = RefreshToken(refresh_token)
+            token.blacklist()  # Добавляем refresh token в черный список
+            return Response({"detail": "Logged out successfully."}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
