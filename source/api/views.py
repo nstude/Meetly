@@ -1,19 +1,25 @@
 from django import forms
+from django.db import transaction
 from django.http import JsonResponse
 from django.contrib import messages
+from django.dispatch import receiver
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
+from django.contrib.auth.decorators import login_required
 from django_filters.rest_framework import DjangoFilterBackend
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+from django.db.models.signals import post_save
+
 from rest_framework import status, generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-from django.contrib.auth.decorators import login_required
+
 from source.api.models import User, Profile, Post, Group, Message, Like
 from django.dispatch import receiver
 from django.views.decorators.http import require_POST
@@ -168,20 +174,24 @@ class ProfileFriendsPostsRetrieveView(generics.ListAPIView):
 
 class ProfileAddFriendsView(generics.GenericAPIView):
     serializer_class = ProfileAddFriendsSerializer
+    permission_classes = [IsAuthenticated]
 
-    def post(self, request, profile_id):
-        profile = self.get_object()
+    def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        profile.friends.add(*serializer.validated_data['friends_id'])
+        result = serializer.save()
+        
         return Response(
-            {"status": "Друзья успешно добавлены"},
+            {
+                'status': 'success',
+                'message': result['message']
+            },
             status=status.HTTP_200_OK
         )
 
-    def get_object(self):
-        return Profile.objects.get(pk=self.kwargs['profile_id'])
+    def get_serializer_context(self):
+        return {'request': self.request}
 
 
 class ProfileRemoveFriendsView(generics.GenericAPIView):
@@ -369,71 +379,41 @@ class LikeDestroyView(generics.DestroyAPIView):
     def has_object_permission(self, request, view, obj):
         return request.user == obj.user"""
 
-
-# TO DO Добавить файл бекенда для аутентификации
-def index(request):
-    return render(request, 'meetly/index.html')
-
-
-class RegistrationForm(forms.ModelForm):
-    password = forms.CharField(widget=forms.PasswordInput, label='Пароль')
-    password_confirm = forms.CharField(widget=forms.PasswordInput, label='Подтверждение пароля')
-
-    class Meta:
-        model = User
-        fields = ['username', 'email']
-
-    def clean_password_confirm(self):
-        password = self.cleaned_data.get('password')
-        password_confirm = self.cleaned_data.get('password_confirm')
-        if password != password_confirm:
-            raise forms.ValidationError('Пароли не совпадают.')
-        return password_confirm
-
-@csrf_exempt
-def register(request):
-    if request.method == 'POST':
-        form = RegistrationForm(request.POST)
-        if form.is_valid():
-            user = form.save(commit=False)  
-            user.set_password(form.cleaned_data['password'])
-            user.save() 
+class RegisterView(generics.CreateAPIView):
+    serializer_class = ProfileCreateSerializer
+    
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        try:
+            profile = serializer.save()
             
-            profile = Profile(user=user)
-            profile.save()
-            
-            return redirect('index')
-    else:
-        form = RegistrationForm()
+            return Response(
+                {
+                    "status": "success",
+                    "user_id": profile.user.id,
+                    "profile_id": profile.id,
+                    "message": "Регистрация прошла успешно"
+                },
+                status=status.HTTP_201_CREATED
+            )
 
-    return render(request, 'meetly/register.html', {'form': form})
-
-# TO DO добавить сериализатор для логина
-# Поменять названия
-def login_view(request):
-    if request.method == 'POST':
-        form = AuthenticationForm(request, data=request.POST)
-        if form.is_valid():
-            user = form.get_user()
-            login(request, user)
-            messages.success(request, f"Добро пожаловать, {user.username}!")
-            return redirect('index')
-        else:
-            messages.error(request, "Неверное имя пользователя или пароль.")
-    else:
-        form = AuthenticationForm()
-
-    return render(request, 'meetly/login.html', {'form': form})
+        except Exception as e:
+            if "unique constraint" in str(e).lower():
+                return Response(
+                    {"error": "Пользователь с такими данными уже существует"},
+                    # TO DO Добавить файл с ошибками
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def current_user(request):
-    return Response({
-        'username': request.user.username,
-        'email': request.user.email
-    })
-
+# ---------------- Смена пароля ----------------
 # TO DO Возможно стоит добавить сериализатор для изменения пароля
 # Если добавлять, то явно в new_password задать min_length=8 и max_length=128
 class ChangePasswordView(APIView):
@@ -457,8 +437,34 @@ class ChangePasswordView(APIView):
         return JsonResponse({'success': True})
 
 
+# ---------------- Логин ----------------
+# TO DO добавить сериализатор для логина
+# Поменять названия
+def login_view(request):
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            login(request, user)
+            messages.success(request, f"Добро пожаловать, {user.username}!")
+            return redirect('index')
+        else:
+            messages.error(request, "Неверное имя пользователя или пароль.")
+    else:
+        form = AuthenticationForm()
+
+    return render(request, 'meetly/login.html', {'form': form})
+
+
+# ---------------- Страницы ----------------
+# TO DO Добавить файл бекенда для аутентификации
+def index(request):
+    return render(request, 'meetly/index.html')
+
+
 def change_password_page(request):
     return render(request, 'meetly/change-password.html')
+
 
 def friends_page(request):
     profile = request.user.profile 
@@ -471,11 +477,6 @@ def friends_page(request):
     }
     return render(request, 'friends.html', context)
 
-@receiver(post_save, sender=User)
-def create_profile(sender, instance, created, **kwargs):
-    if created:
-        Profile.objects.create(user=instance)
-        
 
 class AddFriendView(APIView):
     permission_classes = [IsAuthenticated]

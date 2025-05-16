@@ -46,13 +46,7 @@ class LikeReadSerializer(LikeBaseSerializer):
 
 
 class LikeCreateSerializer(LikeBaseSerializer):
-    """
-    # TO DO Аналогично посту
     user = serializers.HiddenField(
-        default=serializers.CurrentUserDefault()
-    )"""
-    user = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(),
         default=serializers.CurrentUserDefault()
     )
 

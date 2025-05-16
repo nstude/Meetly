@@ -54,16 +54,15 @@ class GroupReadSerializer(GroupBaseSerializer):
 
 
 class GroupCreateSerializer(GroupBaseSerializer):
-    """
-    # TO DO Сделать после авторизации
     author = serializers.HiddenField(
         default=serializers.CurrentUserDefault()
-    )"""
-
+    )
+    """
     author = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(),
         default=serializers.CurrentUserDefault()
     )
+    """
     members = serializers.PrimaryKeyRelatedField(
         many=True,
         queryset=User.objects.all(),

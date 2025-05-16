@@ -29,6 +29,7 @@ class Profile(models.Model):
     friends = models.ManyToManyField(
         "self",
         blank=True,
+        symmetrical=False,
         verbose_name="Друзья"
     )
     birth_date = models.DateField(

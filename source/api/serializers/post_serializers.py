@@ -43,14 +43,7 @@ class PostReadSerializer(PostContentWithAuthorReadSerializer):
 
 
 class PostCreateSerializer(PostBaseSerializer):
-    """
-    # TO DO Сделать после авторизации
     author = serializers.HiddenField(
-        default=serializers.CurrentUserDefault()
-    )"""
-
-    author = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(),
         default=serializers.CurrentUserDefault()
     )
 
