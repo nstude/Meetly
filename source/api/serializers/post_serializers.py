@@ -4,33 +4,15 @@ from django.core.exceptions import ObjectDoesNotExist
 from source.api.models import User, Post
 from source.api.serializers.user_serializers import UserReadSerializer
 
-class PostReadSerializer(serializers.ModelSerializer):
-    author = UserReadSerializer(read_only=True)
-    comments = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    like_list = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
 
+class PostBaseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
-        fields = ['id', 'author', 'content', 'published', 'likes', 'comments', 'like_list']
-        read_only_fields = fields
-
-
-class PostCreateSerializer(serializers.ModelSerializer):
-    author = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(),
-        default=serializers.CurrentUserDefault()
-    )
-
-    class Meta:
-        model = Post
-        fields = ['id', 'author', 'content']
-
-    def create(self, validated_data):
-        author_data = validated_data.pop('author')
-        content_data = validated_data.pop('content')
-        post = Post.objects.create(author=author_data, content=content_data)
-
-        return post
+        fields = ['id', 'content', 'published']
+        extra_kwargs = {
+            'id': {'read_only': True},
+            'published': {'read_only': True}
+        }
     
     def validate_content(self, value):
         if len(value) < 1:
@@ -38,9 +20,46 @@ class PostCreateSerializer(serializers.ModelSerializer):
         return value
 
 
-class PostUpdateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Post
+class PostContentOnlyReadSerializer(PostBaseSerializer):
+    class Meta(PostBaseSerializer.Meta):
+        read_only_fields = PostBaseSerializer.Meta.fields
+
+
+class PostContentWithAuthorReadSerializer(PostBaseSerializer):
+    author = UserReadSerializer(read_only=True)
+
+    class Meta(PostBaseSerializer.Meta):
+        fields = PostBaseSerializer.Meta.fields + ['author']
+        read_only_fields = fields
+
+
+class PostReadSerializer(PostContentWithAuthorReadSerializer):
+    comments = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    like_list = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    likes = serializers.IntegerField(read_only=True, source='likes.count')
+
+    class Meta(PostContentWithAuthorReadSerializer.Meta):
+        fields = PostContentWithAuthorReadSerializer.Meta.fields + ['comments', 'like_list', 'likes']
+
+
+class PostCreateSerializer(PostBaseSerializer):
+    author = serializers.HiddenField(
+        default=serializers.CurrentUserDefault()
+    )
+
+    class Meta(PostBaseSerializer.Meta):
+        fields = PostBaseSerializer.Meta.fields + ['author']
+        extra_kwargs = {
+            **PostBaseSerializer.Meta.extra_kwargs,
+            'content': {'required': True}
+        }
+
+    def create(self, validated_data):
+        return Post.objects.create(**validated_data)
+
+
+class PostUpdateSerializer(PostBaseSerializer):
+    class Meta(PostBaseSerializer.Meta):
         fields = ['id', 'content']
 
     def update(self, instance, validated_data):
@@ -49,14 +68,11 @@ class PostUpdateSerializer(serializers.ModelSerializer):
 
         return instance
 
-    def validate_content(self, value):
-        if len(value) < 1:
-            raise serializers.ValidationError("Пост не может быть пустым")
-        return value
 
-
-class PostDeleteSerializer(serializers.Serializer): 
-    id = serializers.IntegerField(required=True)
+class PostDeleteSerializer(PostBaseSerializer): 
+    
+    class Meta(PostBaseSerializer.Meta):
+        fields = ['id']
 
     def validate(self, data):
         try:

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meetly — Друзья</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+        header {
+            background-color: #4267B2;
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+        }
+        nav {
+            background-color: #fff;
+            padding: 10px 20px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+        }
+        nav a {
+            margin-right: 15px;
+            text-decoration: none;
+            color: #333;
+        }
+        .logout-btn {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+        .user-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+        .user-card {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            width: 250px;
+            padding: 20px;
+            text-align: center;
+        }
+        .user-card img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 10px;
+        }
+        .user-card h3 {
+            margin: 10px 0 5px;
+            color: #333;
+        }
+        .user-card p {
+            margin: 5px 0;
+            color: #666;
+        }
+        .follow-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Meetly</h1>
+</header>
+
+<nav>
+    <div id="nav-links">
+        <a href="{% url 'index' %}">Главная</a>
+    </div>
+    <div id="nav-auth"></div>
+</nav>
+
+<div class="container">
+    <h2>Мои друзья</h2>
+    <div class="user-grid" id="friends-grid">
+        {% if friends %}
+            <p id="friends-count">Найдено {{ friends.count }} друзей.</p>
+            {% for user in friends %}
+                <div class="user-card" data-user-id="{{ user.id }}">
+                    {% if user.profile.photo %}
+                        <img src="{{ user.profile.photo.url }}" alt="Фото профиля">
+                    {% else %}
+                        <img src="https://via.placeholder.com/100" alt="Без фото">
+                    {% endif %}
+                    <h3>{{ user.username }}</h3>
+                    <p>Возраст: {{ user.profile.get_age }}</p>
+                    <p>Пол: {{ user.profile.get_gender_display }}</p>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p id="no-friends-msg">У вас пока нет друзей.</p>
+        {% endif %}
+    </div>
+
+    <h2>Другие пользователи</h2>
+    <div class="user-grid" id="others-grid">
+        {% if others %}
+            {% for user in others %}
+                <div class="user-card" data-user-id="{{ user.id }}">
+                    {% if user.profile.photo %}
+                        <img src="{{ user.profile.photo.url }}" alt="Фото профиля">
+                    {% else %}
+                        <img src="https://via.placeholder.com/100" alt="Без фото">
+                    {% endif %}
+                    <h3>{{ user.username }}</h3>
+                    <p>Возраст: {{ user.profile.get_age }}</p>
+                    <p>Пол: {{ user.profile.get_gender_display }}</p>
+                    <button class="follow-btn">Подписаться</button>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>Других пользователей пока нет.</p>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    const accessToken = localStorage.getItem('access');
+    const navAuth = document.getElementById('nav-auth');
+    const navLinks = document.getElementById('nav-links');
+
+    if (accessToken) {
+        fetch('{% url "current_user" %}', {
+            headers: {
+                'Authorization': 'Bearer ' + accessToken
+            }
+        })
+        .then(res => {
+            if (!res.ok) throw new Error("Не авторизован");
+            return res.json();
+        })
+        .then(data => {
+            navLinks.innerHTML += `
+                <a href="{% url 'friends' %}">Друзья</a>
+                <a href="#">Сообщения</a>
+            `;
+            navAuth.innerHTML = `
+                <a href="#">Профиль</a>
+                <a href="{% url 'change-password-page' %}" style="margin-right: 10px;">Сменить пароль</a>
+                <button class="logout-btn" onclick="logout()">Выход</button>
+            `;
+        })
+        .catch(err => {
+            console.warn('Ошибка:', err);
+            showNotAuth();
+        });
+    } else {
+        showNotAuth();
+    }
+
+    function showNotAuth() {
+        navAuth.innerHTML = `
+            <a href="{% url 'login' %}">Войти</a>
+            <a href="{% url 'register' %}" style="background-color: #4CAF50; color: white; padding: 8px 12px; text-decoration: none; border-radius: 4px;">Регистрация</a>
+        `;
+    }
+
+    function logout() {
+        localStorage.removeItem('access');
+        localStorage.removeItem('refresh');
+        window.location.href = '{% url 'index' %}';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const followButtons = document.querySelectorAll('.follow-btn');
+
+        followButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const card = button.closest('.user-card');
+                const profileId = card.dataset.userId; // Получаем ID профиля, к которому пытаемся подписаться
+
+                fetch('/api/add_friend/', { // Предполагаем, что путь к API правильный
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + localStorage.getItem('access')
+                    },
+                    body: JSON.stringify({ profile_id: profileId }) // Отправляем profile_id
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        // **Перезагружаем страницу, чтобы получить данные с сервера**
+                        window.location.reload();
+                    } else {
+                        alert('Ошибка: ' + (data.error || 'Не удалось подписаться'));
+                    }
+                })
+                .catch(err => {
+                    console.error('Ошибка запроса:', err);
+                    alert('Ошибка при отправке запроса');
+                });
+            });
+        });
+    });
+</script>
+
+</body>
+</html>

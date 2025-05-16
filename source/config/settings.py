@@ -4,19 +4,29 @@ from dotenv import load_dotenv
 from datetime import timedelta
 load_dotenv()
 
-# ---------------- DEBUG  ----------------
+LOGIN_URL = 'login' 
+# ---------------- DEBUG ----------------
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 DEBUG = True
 
 
-# ---------------- KEY  ----------------
+# ---------------- KEY ----------------
 SECRET_KEY = os.getenv('SECRET_KEY')
 
+
+# ---------------- COOKIE ----------------
+SESSION_COOKIE_SECURE = True
+
+CSRF_COOKIE_SECURE = True
+
+
+# ---------------- MEDIA ----------------
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# ---------------- URL  ----------------
+
+# ---------------- URL ----------------
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 APPEND_SLASH = True
@@ -30,7 +40,7 @@ STATIC_URL = 'static/'
 
 
 
-# ---------------- APPS  ----------------
+# ---------------- APPS ----------------
 INSTALLED_APPS = [
     'django_filters',
     'django.contrib.admin',
@@ -43,7 +53,10 @@ INSTALLED_APPS = [
     'source.api.test',
     'source.api.serializers',
     'rest_framework',
+    'rest_framework_simplejwt.token_blacklist'
 ]
+
+WSGI_APPLICATION = 'source.config.wsgi.application'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -53,13 +66,23 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'source.api.middleware.JWTAuthMiddleware'
+    
 ]
-
 
 TEMPLATES = [
     {
+        'BACKEND': 'django.template.backends.jinja2.Jinja2',
+        'DIRS': [BASE_DIR / 'templates'],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'environment': 'source.api.jinja2.environment',
+        },
+        'NAME': 'jinja2',  
+    },
+    {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -72,10 +95,10 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'source.config.wsgi.application'
 
 
-# ---------------- DATABASE  ----------------
+
+# ---------------- DATABASE ----------------
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
@@ -96,7 +119,7 @@ DATABASES = {
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-# ---------------- REST API  ----------------
+# ---------------- REST API ----------------
 REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
@@ -108,7 +131,7 @@ REST_FRAMEWORK = {
 }
 
 
-# ---------------- VALIDATION  ----------------
+# ---------------- VALIDATION ----------------
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
@@ -128,7 +151,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# ---------------- TIME AND LANGUAGE  ----------------
+# ---------------- TIME AND LANGUAGE ----------------
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
@@ -141,6 +164,7 @@ USE_I18N = True
 USE_TZ = True
 
 
+# ---------------- JWT ----------------
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
@@ -170,7 +194,7 @@ SIMPLE_JWT = {
     "JTI_CLAIM": "jti",
 
     "SLIDING_TOKEN_REFRESH_EXP_CLAIM": "refresh_exp",
-    "SLIDING_TOKEN_LIFETIME": timedelta(minutes=5),
+    "SLIDING_TOKEN_LIFETIME": timedelta(minutes=60), #Поменять обратно на 5 минут
     "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
 
     "TOKEN_OBTAIN_SERIALIZER": "rest_framework_simplejwt.serializers.TokenObtainPairSerializer",
@@ -180,3 +204,18 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_OBTAIN_SERIALIZER": "rest_framework_simplejwt.serializers.TokenObtainSlidingSerializer",
     "SLIDING_TOKEN_REFRESH_SERIALIZER": "rest_framework_simplejwt.serializers.TokenRefreshSlidingSerializer",
 }
+
+# ---------------- TIME AND LANGUAGE  ----------------
+# Internationalization
+# https://docs.djangoproject.com/en/5.1/topics/i18n/
+
+LANGUAGE_CODE = 'en-us'
+
+TIME_ZONE = 'UTC'
+
+USE_I18N = True
+
+USE_TZ = True
+
+
+# TO DO Перегрузка EXCEPTION_HANDLER и NON_FIELD_ERRORS_KEY

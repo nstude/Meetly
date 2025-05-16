@@ -1,23 +1,65 @@
 
 from django.urls import path
 from source.api.views import (
-    UserRetrieveAllView, UserCreateView, UserRetrieveView, UserUpdateView, UserDestroyView,
-    ProfileRetrieveAllView, ProfileCreateView, ProfileRetrieveView, ProfileUpdateView, ProfileDestroyView,
-    PostRetrieveAllView, PostCreateView, PostRetrieveView, PostUpdateView, PostDestroyView,
-    GroupRetrieveAllView, GroupCreateView, GroupRetrieveView, GroupUpdateView, GroupDestroyView,
-    MessageRetrieveAllView, MessageCreateView, MessageRetrieveView, MessageUpdateView, MessageDestroyView,
-    LikeRetrieveAllView, LikeCreateView, LikeRetrieveView, LikeDestroyView
+    UserRetrieveAllView,
+    UserCreateView,
+    UserRetrieveView,
+    UserUpdateView,
+    UserDestroyView,
+    UserGroupsRetrieveView,
+    UserPostsRetrieveView
+)
+from source.api.views import (
+    ProfileRetrieveAllView,
+    ProfileCreateView,
+    ProfileRetrieveView,
+    ProfileUpdateView,
+    ProfileDestroyView,
+    ProfileFriendsPostsRetrieveView,
+    ProfileAddFriendsView,
+    ProfileRemoveFriendsView
+)
+from source.api.views import (
+    PostRetrieveAllView,
+    PostCreateView,
+    PostRetrieveView,
+    PostUpdateView,
+    PostDestroyView
+)
+from source.api.views import (
+    GroupRetrieveAllView,
+    GroupCreateView,
+    GroupRetrieveView,
+    GroupUpdateView,
+    GroupDestroyView,
+    GroupAddMembersView,
+    GroupRemoveMembersView
+)
+from source.api.views import (
+    MessageRetrieveAllView,
+    MessageCreateView,
+    MessageRetrieveView,
+    MessageUpdateView,
+    MessageDestroyView
+)
+from source.api.views import (
+    LikeRetrieveAllView,
+    LikeCreateView,
+    LikeRetrieveView,
+    LikeDestroyView
 )
 
+
+
 urlpatterns = [
-   
-   
     # Маршруты для User
     path('users/', UserRetrieveAllView.as_view(), name='user-retrieve-all'),
     path('users/create/', UserCreateView.as_view(), name='user-create'),
     path('users/<int:pk>/', UserRetrieveView.as_view(), name='user-retrieve'),
     path('users/<int:pk>/update/', UserUpdateView.as_view(), name='user-update'),
     path('users/<int:pk>/delete/', UserDestroyView.as_view(), name='user-destroy'),
+    path('users/<int:user_id>/groups/', UserGroupsRetrieveView.as_view(), name='user-groups'), # Эндпоинт для групп юзера
+    path('users/<int:user_id>/posts/', UserPostsRetrieveView.as_view(), name='user-posts'), # Эндпоинт для постов юзера
 
     # Маршруты для Profile
     path('profiles/', ProfileRetrieveAllView.as_view(), name='profile-retrieve-all'),
@@ -25,6 +67,9 @@ urlpatterns = [
     path('profiles/<int:pk>/', ProfileRetrieveView.as_view(), name='profile-retrieve'),
     path('profiles/<int:pk>/update/', ProfileUpdateView.as_view(), name='profile-update'),
     path('profiles/<int:pk>/delete/', ProfileDestroyView.as_view(), name='profile-destroy'),
+    path('profiles/<int:profile_id>/friends/posts/', ProfileFriendsPostsRetrieveView.as_view(), name='profile-friends-posts'), # Эндпоинт для постов друзей юзера (профиля)
+    path('profiles/<int:profile_id>/friends/add/', ProfileAddFriendsView.as_view(), name='profile-add-friends'),
+    path('profiles/<int:profile_id>/friends/remove/', ProfileRemoveFriendsView.as_view(), name='profile-remove-friends'),
 
     # Маршруты для Post
     path('posts/', PostRetrieveAllView.as_view(), name='post-retrieve-all'),
@@ -39,6 +84,8 @@ urlpatterns = [
     path('groups/<int:pk>/', GroupRetrieveView.as_view(), name='group-retrieve'),
     path('groups/<int:pk>/update/', GroupUpdateView.as_view(), name='group-update'),
     path('groups/<int:pk>/delete/', GroupDestroyView.as_view(), name='group-destroy'),
+    path('groups/<int:group_id>/members/add/', GroupAddMembersView.as_view(), name='group-add-members'),
+    path('groups/<int:group_id>/members/remove/', GroupRemoveMembersView.as_view(), name='group-remove-members'),
 
     # Маршруты для Message
     path('messages/', MessageRetrieveAllView.as_view(), name='message-retrieve-all'),

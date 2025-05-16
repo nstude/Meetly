@@ -1,24 +1,37 @@
 from rest_framework import serializers
-from django.core.exceptions import ObjectDoesNotExist
 
 from source.api.models import User, Message, Post, Group
 from source.api.serializers.user_serializers import UserReadSerializer
 
-class MessageReadSerializer(serializers.ModelSerializer):
-    author = UserReadSerializer(read_only=True)
-    post = serializers.PrimaryKeyRelatedField(queryset=Post.objects.all())
-    group = serializers.PrimaryKeyRelatedField(queryset=Group.objects.all())
-    like_list = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
 
+class MessageBaseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
-        fields = ['id', 'author', 'content', 'timestamp', 'post', 'group', 'likes', 'like_list']
+        fields = ['id', 'content', 'timestamp']
+        extra_kwargs = {
+            'id': {'read_only': True},
+            'timestamp': {'read_only': True}
+        }
+
+    def validate_content(self, value):
+        if len(value.strip()) < 1:
+            raise serializers.ValidationError("Сообщение не может быть пустым")
+        return value
+
+
+class MessageReadSerializer(MessageBaseSerializer):
+    author = UserReadSerializer(read_only=True)
+    post = serializers.PrimaryKeyRelatedField(read_only=True)
+    group = serializers.PrimaryKeyRelatedField(read_only=True)
+    like_list = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+
+    class Meta(MessageBaseSerializer.Meta):
+        fields = MessageBaseSerializer.Meta.fields + ['author', 'post', 'group', 'likes', 'like_list']
         read_only_fields = fields
 
-
-class MessageCreateSerializer(serializers.ModelSerializer):
-    author = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(),
+# TO DO Понять, стоит ли перерабатывать отправку сообщений (чтобы id объекта задавался не в теле, а в запросе)
+class MessageCreateSerializer(MessageBaseSerializer):
+    author = serializers.HiddenField(
         default=serializers.CurrentUserDefault()
     )
     post = serializers.PrimaryKeyRelatedField(
@@ -30,66 +43,35 @@ class MessageCreateSerializer(serializers.ModelSerializer):
         required=False
     )
 
-    class Meta:
-        model = Message
-        fields = ['id', 'author', 'content', 'post', 'group']
+    class Meta(MessageBaseSerializer.Meta):
+        fields = MessageBaseSerializer.Meta.fields + ['author', 'post', 'group']
 
     def validate(self, data):
-        if data.get('group') and data.get('post'):
+        has_post = 'post' in data and data['post'] is not None
+        has_group = 'group' in data and data['group'] is not None
+        
+        if has_post and has_group:
             raise serializers.ValidationError("Сообщение должно быть связано либо с группой, либо с постом")
-        if not data.get('group') and not data.get('post'):
+        if not has_post and not has_group:
             raise serializers.ValidationError("Сообщение должно быть связано с группой или постом")
         return data
-    
-    def validate_content(self, value):
-        if len(value) < 1:
-            raise serializers.ValidationError("Сообщение не может быть пустым")
-        return value
-    
+
     def create(self, validated_data):
-        author = validated_data.get('author')
-        content = validated_data.get('content')
-        
-        if 'post' in validated_data:
-            post = validated_data['post']
-            message = Message.objects.create(
-                author=author,
-                content=content,
-                post=post
-            )
-        elif 'group' in validated_data:
-            group = validated_data['group']
-            message = Message.objects.create(
-                author=author,
-                content=content,
-                group=group
-            )
+        return Message.objects.create(**validated_data)
 
-        return message
 
-class MessageUpdateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Message
+class MessageUpdateSerializer(MessageBaseSerializer):
+    class Meta(MessageBaseSerializer.Meta):
         fields = ['id', 'content']
 
-    def validate_content(self, value):
-        if len(value) < 1:
-            raise serializers.ValidationError("Сообщение не может быть пустым")
-        return value
-    
 
-class MessageDeleteSerializer(serializers.Serializer): 
+class MessageDeleteSerializer(serializers.Serializer):
     id = serializers.IntegerField(required=True)
 
     def validate(self, data):
-        try:
-            Message.objects.get(id=data['id'])
-        except ObjectDoesNotExist:
+        if not Message.objects.filter(id=data['id']).exists():
             raise serializers.ValidationError("Сообщение не найдено")
-
         return data
 
     def delete(self):
-        message = Message.objects.get(id=self.validated_data['id'])
-        message.delete()
-        return
+        Message.objects.get(id=self.validated_data['id']).delete()
