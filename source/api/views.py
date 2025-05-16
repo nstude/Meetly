@@ -12,7 +12,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.db.models.signals import post_save
-
+from rest_framework.exceptions import PermissionDenied
 from rest_framework import status, generics, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -214,12 +214,24 @@ class ProfileRetrieveAllView(generics.ListAPIView):
     filterset_fields = ['gender', 'birth_date']
     permission_classes = [IsAuthenticated]  
 
-    def to_representation(self, instance):
-        representation = super().to_representation(instance)
-        if self.request.user != instance.user:
-            representation.pop('friends', None)  
-        
-        return representation
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())  
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            data = serializer.data
+            for profile in data:
+                if request.user.id != profile.get('user').get('id'):  
+                    profile.pop('friends', None)
+            return self.get_paginated_response(data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        data = serializer.data
+        for profile in data:
+            if request.user.id != profile.get('user').get('id'):  
+                profile.pop('friends', None)
+        return Response(data)
 
 class ProfileCreateView(generics.CreateAPIView):
     queryset = Profile.objects.all()
@@ -228,10 +240,28 @@ class ProfileCreateView(generics.CreateAPIView):
 class ProfileUpdateView(generics.UpdateAPIView):
     queryset = Profile.objects.all()
     serializer_class = ProfileUpdateSerializer
+    def get_object(self):
+        profile_id = self.kwargs['pk']
+        try:
+            profile = Profile.objects.get(id=profile_id)
+        except Profile.DoesNotExist:
+            raise PermissionDenied("Профиль не найден.")
+        if profile.user != self.request.user:
+            raise PermissionDenied("Вы можете изменить только свой профиль.")
+        return profile
 
 class ProfileDestroyView(generics.DestroyAPIView):
     queryset = Profile.objects.all()
     serializer_class = ProfileDeleteSerializer
+    def get_object(self):
+        profile_id = self.kwargs['pk']
+        try:
+            profile = Profile.objects.get(id=profile_id)
+        except Profile.DoesNotExist:
+            raise PermissionDenied("Профиль не найден.")
+        if profile.user != self.request.user:
+            raise PermissionDenied("Вы можете удалить только свой профиль.")
+        return profile
 
 # Эндпонит для вывода постов конкретного юзера
 class ProfileFriendsPostsRetrieveView(generics.ListAPIView):
@@ -296,7 +326,12 @@ class ProfileRemoveFriendsView(generics.GenericAPIView):
 class PostRetrieveView(generics.RetrieveAPIView):
     queryset = Post.objects.all()
     serializer_class = PostReadSerializer
-    
+    def get_queryset(self):
+        user = self.request.user
+        profile = user.profile
+        friends = profile.friends.all()
+        allowed_users = [user] + [friend.user for friend in friends]
+        return Post.objects.filter(author__in=allowed_users)
 
 class PostRetrieveAllView(generics.ListAPIView):
     queryset = Post.objects.all()
@@ -318,10 +353,24 @@ class PostCreateView(generics.CreateAPIView):
 class PostUpdateView(generics.UpdateAPIView):
     queryset = Post.objects.all()
     serializer_class = PostUpdateSerializer
+    def get_object(self):
+        user = self.request.user  
+        post_id = self.kwargs['pk']  
+        post = get_object_or_404(Post, id=post_id)
+        if post.author != user:
+            raise PermissionDenied("Вы не можете изменять чужие посты.")
+        return post
 
 class PostDestroyView(generics.DestroyAPIView):
     queryset = Post.objects.all()
     serializer_class = PostDeleteSerializer
+    def get_object(self):
+        user = self.request.user  
+        post_id = self.kwargs['pk']  
+        post = get_object_or_404(Post, id=post_id)
+        if post.author != user:
+            raise PermissionDenied("Вы не можете удалять чужие посты.")
+        return post
 
 
 
@@ -329,6 +378,9 @@ class PostDestroyView(generics.DestroyAPIView):
 class GroupRetrieveView(generics.RetrieveAPIView):
     queryset = Group.objects.all()
     serializer_class = GroupReadSerializer
+    def get_queryset(self):
+        user = self.request.user
+        return Group.objects.filter(members=user)
 
 class GroupRetrieveAllView(generics.ListAPIView):
     queryset = Group.objects.all()
@@ -347,10 +399,28 @@ class GroupCreateView(generics.CreateAPIView):
 class GroupUpdateView(generics.UpdateAPIView):
     queryset = Group.objects.all()
     serializer_class = GroupUpdateSerializer
+    def get_object(self):
+        user = self.request.user
+        group_id = self.kwargs['pk']
+        group = get_object_or_404(Group, id=group_id)
+        if group.author != user:
+            raise PermissionDenied("Вы не можете удалять группы, которые не создавали.")
+
+        return group
 
 class GroupDestroyView(generics.DestroyAPIView):
     queryset = Group.objects.all()
     serializer_class = GroupDeleteSerializer
+    def get_object(self):
+        user = self.request.user
+        group_id = self.kwargs['pk']
+        group = get_object_or_404(Group, id=group_id)
+        if group.author != user:
+            raise PermissionDenied("Вы не можете удалять группы, которые не создавали.")
+
+        return group
+    
+
 
 # TO DO Возможно стоит переделать через метод PUT/PATCH
 class GroupAddMembersView(generics.GenericAPIView):
@@ -421,10 +491,26 @@ class MessageCreateView(generics.CreateAPIView):
 class MessageUpdateView(generics.UpdateAPIView):
     queryset = Message.objects.all()
     serializer_class = MessageUpdateSerializer
+    queryset = Message.objects.all()
+    serializer_class = MessageDeleteSerializer
+    def get_object(self):
+        user = self.request.user  
+        message_id = self.kwargs['pk'] 
+        message = get_object_or_404(Message, id=message_id)
+        if message.author != user:
+            raise PermissionDenied("Вы не можете удалять чужие сообщения.")
+        return message
 
 class MessageDestroyView(generics.DestroyAPIView):
     queryset = Message.objects.all()
     serializer_class = MessageDeleteSerializer
+    def get_object(self):
+        user = self.request.user  
+        message_id = self.kwargs['pk'] 
+        message = get_object_or_404(Message, id=message_id)
+        if message.author != user:
+            raise PermissionDenied("Вы не можете обновлять чужие сообщения.")
+        return message
 
 
 
@@ -447,6 +533,13 @@ class LikeCreateView(generics.CreateAPIView):
 class LikeDestroyView(generics.DestroyAPIView):
     queryset = Like.objects.all()
     serializer_class = LikeDeleteSerializer
+    def get_object(self):
+        user = self.request.user  
+        like_id = self.kwargs['pk']  
+        like = get_object_or_404(Like, id=like_id)
+        if like.user != user:
+            raise PermissionDenied("Вы не можете удалять чужие лайки.")
+        return like
 
 
 
