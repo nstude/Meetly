@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
+from rest_framework.exceptions import PermissionDenied, ValidationError
 
 
 class UserBaseSerializer(serializers.ModelSerializer):
@@ -41,23 +42,22 @@ class UserUpdateSerializer(UserBaseSerializer):
             'username': {'required': False},
             'email': {'required': False}
         }
-
+    # TO DO Перенести в views
     def update(self, instance, validated_data):
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        return instance
+        if instance != self.context['request'].user and not self.context['request'].user.is_superuser:
+            raise PermissionDenied("Вы можете редактировать только свои данные")
+
+        return super().update(instance, validated_data)
 
 
 class UserDeleteSerializer(UserBaseSerializer):
     class Meta(UserBaseSerializer.Meta):
-        fields = ['id']
-
-    def validate(self, data):
-        if not User.objects.filter(id=data['id']).exists():
-            raise serializers.ValidationError("Пользователь не найден")
-        return data
+        fields = []
 
     def delete(self):
-        user = User.objects.get(id=self.validated_data['id'])
-        user.delete()
+        user = self.instance
+        if hasattr(user, 'is_active'):
+            user.is_active = False
+            user.save()
+        else:
+            user.delete()

@@ -13,13 +13,15 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.db.models.signals import post_save
 from rest_framework.exceptions import PermissionDenied
-from rest_framework import status, generics
+from rest_framework import status, generics, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-from django.shortcuts import get_object_or_404
+
+from rest_framework.exceptions import PermissionDenied, ValidationError
+
 from source.api.models import User, Profile, Post, Group, Message, Like
 from django.dispatch import receiver
 from django.views.decorators.http import require_POST
@@ -72,16 +74,70 @@ from source.api.serializers.like_serializers import (
 
 
 # ---------------- Пользователь ----------------
+class IsOwnerOrAdminUser(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        return request.user == obj
+
+
 class UserRetrieveView(generics.RetrieveAPIView):
     queryset = User.objects.all()
+    permission_classes = [IsAuthenticated]
     serializer_class = UserReadSerializer
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+
+        if request.user == instance or request.user.is_superuser:
+            return super().retrieve(request, *args, **kwargs)
+
+        serializer = self.get_serializer(instance)
+        data = serializer.data
+
+        filtered_data = data.copy()
+        filtered_data.pop('id', None)
+        filtered_data.pop('email', None)
+
+        return Response(filtered_data)
+        """
+        sensitive_fields = ['phone', 'last_login', 'date_joined']
+        for field in sensitive_fields:
+            filtered_data.pop(field, None)
+        """
+        
+
 
 class UserRetrieveAllView(generics.ListAPIView):
     queryset = User.objects.all()
-    serializer_class = UserReadSerializer
+    permission_classes = [IsAuthenticated]
     pagination_class = PageNumberPagination
+    serializer_class = UserReadSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['username', 'email']
+    filterset_fields = ['username']
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            data = self.process_data(serializer.data, request.user)
+            return self.get_paginated_response(data)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        data = self.process_data(serializer.data, request.user)
+        return Response(data)
+
+    def process_data(self, data, current_user):
+        result = []
+        for user_data in data:
+            if user_data['id'] == current_user.id or current_user.is_superuser:
+                result.append(user_data)
+            else:
+                filtered_data = user_data.copy()
+                filtered_data.pop('id', None)
+                filtered_data.pop('email', None)
+                result.append(filtered_data)
+        return result
 
 class UserCreateView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -89,11 +145,31 @@ class UserCreateView(generics.CreateAPIView):
 
 class UserUpdateView(generics.UpdateAPIView):
     queryset = User.objects.all()
+    permission_classes = [IsAuthenticated]
     serializer_class = UserUpdateSerializer
 
 class UserDestroyView(generics.DestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserDeleteSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_destroy(self, instance):
+        if not (self.request.user == instance or self.request.user.is_superuser):
+            raise PermissionDenied("Вы не имеете прав для удаления этого аккаунта")
+
+        if hasattr(instance, 'is_active'):
+            instance.is_active = False
+            instance.save()
+        else:
+            instance.delete()
+
+    def delete(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(
+            {"detail": "Аккаунт успешно удален"}, 
+            status=status.HTTP_204_NO_CONTENT
+        )
 
 # Эндпонит для вывода групп конкретного юзера
 # TO DO Сделать по уму
@@ -468,9 +544,6 @@ class LikeDestroyView(generics.DestroyAPIView):
 
 
 # ---------------- Регистрация ----------------
-"""class IsProfileOwner(permissions.BasePermission):
-    def has_object_permission(self, request, view, obj):
-        return request.user == obj.user"""
 
 class RegisterView(generics.CreateAPIView):
     serializer_class = ProfileCreateSerializer
