@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from django.core.exceptions import ObjectDoesNotExist
+from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from source.api.models import User, Group
 from source.api.serializers.user_serializers import UserReadSerializer
@@ -110,16 +110,38 @@ class GroupUpdateSerializer(GroupBaseSerializer):
 
 
 class GroupAddMemberSerializer(serializers.Serializer):
+    group_id = serializers.IntegerField(required=True)
     members_id = serializers.PrimaryKeyRelatedField(
         many=True,
         queryset=User.objects.all(),
         required=True
     )
 
-    def validate_members_id(self, value):
-        if not value:
-            raise serializers.ValidationError("Необходимо указать хотя бы одного пользователя")
-        return value
+    def validate(self, data):
+        try:
+            group = Group.objects.get(id=data['group_id'])
+        except Group.DoesNotExist:
+            raise ValidationError("Группа не найдена")
+
+        current_user = self.context['request'].user
+        if not (current_user == group.author or current_user in group.members.all()):
+            raise PermissionDenied("Только автор и участники группы могут добавлять новых членов")
+
+        existing_members = group.members.filter(id__in=[user.id for user in data['members_id']])
+        if existing_members.exists():
+            raise ValidationError(
+                f"Некоторые пользователи уже состоят в группе: {list(existing_members.values_list('id', flat=True))}"
+            )
+
+        data['group'] = group
+        return data
+
+    def save(self, **kwargs):
+        group = self.validated_data['group']
+        members_to_add = self.validated_data['members_id']
+        group.members.add(*members_to_add)
+        return group
+
 
 # TO DO Подумать над реализацией
 class GroupRemoveMemberSerializer(serializers.Serializer):

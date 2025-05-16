@@ -1,34 +1,21 @@
-from django import forms
+
 from django.db import transaction
 from django.http import JsonResponse
 from django.contrib import messages
-from django.dispatch import receiver
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
-from django.contrib.auth.decorators import login_required
 from django_filters.rest_framework import DjangoFilterBackend
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
-from django.db.models.signals import post_save
-
+from rest_framework.exceptions import PermissionDenied
 from rest_framework import status, generics, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from source.api.models import User, Profile, Post, Group, Message, Like
-from django.dispatch import receiver
-from django.views.decorators.http import require_POST
-from django.db.models.signals import post_save
-from django.contrib.auth import logout
-from rest_framework.authtoken.models import Token
-from rest_framework_simplejwt.tokens import RefreshToken
 from source.api.serializers.user_serializers import (
     UserReadSerializer,
     UserCreateSerializer,
@@ -79,6 +66,12 @@ class IsOwnerOrAdminUser(permissions.BasePermission):
         return request.user == obj
 
 
+def user_delete_fields(data):
+    data.pop('id', None)
+    data.pop('email', None)
+    
+    return data
+
 class UserRetrieveView(generics.RetrieveAPIView):
     queryset = User.objects.all()
     permission_classes = [IsAuthenticated]
@@ -91,13 +84,8 @@ class UserRetrieveView(generics.RetrieveAPIView):
             return super().retrieve(request, *args, **kwargs)
 
         serializer = self.get_serializer(instance)
-        data = serializer.data
-
-        filtered_data = data.copy()
-        filtered_data.pop('id', None)
-        filtered_data.pop('email', None)
-
-        return Response(filtered_data)
+        data = user_delete_fields(serializer.data)
+        return Response(data)
         """
         sensitive_fields = ['phone', 'last_login', 'date_joined']
         for field in sensitive_fields:
@@ -133,9 +121,7 @@ class UserRetrieveAllView(generics.ListAPIView):
             if user_data['id'] == current_user.id or current_user.is_superuser:
                 result.append(user_data)
             else:
-                filtered_data = user_data.copy()
-                filtered_data.pop('id', None)
-                filtered_data.pop('email', None)
+                filtered_data = user_delete_fields(user_data.copy())
                 result.append(filtered_data)
         return result
 
@@ -145,8 +131,28 @@ class UserCreateView(generics.CreateAPIView):
 
 class UserUpdateView(generics.UpdateAPIView):
     queryset = User.objects.all()
+    serializer_class = UserUpdateSerializer  # Ваш сериализатор для обновления
     permission_classes = [IsAuthenticated]
-    serializer_class = UserUpdateSerializer
+
+    def perform_update(self, serializer):
+        instance = serializer.instance
+
+        if not (self.request.user == instance or self.request.user.is_superuser):
+            raise PermissionDenied("Вы не имеете прав для редактирования этого аккаунта")
+
+        serializer.save()
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        
+        self.perform_update(serializer)
+        
+        return Response(
+            {"detail": "Данные успешно обновлены"},
+            status=status.HTTP_200_OK
+        )
 
 class UserDestroyView(generics.DestroyAPIView):
     queryset = User.objects.all()
@@ -191,6 +197,16 @@ class UserPostsRetrieveView(generics.ListAPIView):
 
 
 # ---------------- Профиль пользователя  ----------------
+def profile_delete_fields(data):
+    data.pop('id', None)
+    data.pop('age', None)
+    data.pop('birth_date', None)
+    data['user'].pop('id', None)
+    data['user'].pop('email', None)
+    
+    return data
+
+
 class ProfileRetrieveView(generics.RetrieveAPIView):
     queryset = Profile.objects.all()
     serializer_class = ProfileReadSerializer
@@ -200,10 +216,10 @@ class ProfileRetrieveView(generics.RetrieveAPIView):
         profile = self.get_object()
         if request.user != profile.user:
             serializer = self.get_serializer(profile)
-            data = serializer.data
-            data.pop('friends', None)  
+            data = profile_delete_fields(serializer.data)
             return Response(data)
         return super().retrieve(request, *args, **kwargs)
+
 
 #TO DO для всех пользователей убрать friends, оставить только для своего профиля
 class ProfileRetrieveAllView(generics.ListAPIView):
@@ -214,12 +230,24 @@ class ProfileRetrieveAllView(generics.ListAPIView):
     filterset_fields = ['gender', 'birth_date']
     permission_classes = [IsAuthenticated]  
 
-    def to_representation(self, instance):
-        representation = super().to_representation(instance)
-        if self.request.user != instance.user:
-            representation.pop('friends', None)  
-        
-        return representation
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())  
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            data = serializer.data
+            for profile in data:
+                if request.user.id != profile.get('user').get('id'):  
+                    profile = profile_delete_fields(profile)
+            return self.get_paginated_response(data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        data = serializer.data
+        for profile in data:
+            if request.user.id != profile.get('user').get('id'):  
+                profile = profile_delete_fields(profile)
+        return Response(data)
 
 class ProfileCreateView(generics.CreateAPIView):
     queryset = Profile.objects.all()
@@ -293,6 +321,11 @@ class ProfileRemoveFriendsView(generics.GenericAPIView):
 
 
 # ---------------- Пост ----------------
+"""def post_delete_fields(data):
+    data.pop('id', None)
+    
+    return data"""
+
 class PostRetrieveView(generics.RetrieveAPIView):
     queryset = Post.objects.all()
     serializer_class = PostReadSerializer
@@ -351,8 +384,15 @@ class GroupUpdateView(generics.UpdateAPIView):
 class GroupDestroyView(generics.DestroyAPIView):
     queryset = Group.objects.all()
     serializer_class = GroupDeleteSerializer
+    def get_object(self):
+        user = self.request.user
+        group_id = self.kwargs['pk']
+        group = get_object_or_404(Group, id=group_id)
+        if group.author != user:
+            raise PermissionDenied("Вы не можете удалять группы, которые не создавали.")
 
-# TO DO Возможно стоит переделать через метод PUT/PATCH
+        return group
+    
 class GroupAddMembersView(generics.GenericAPIView):
     serializer_class = GroupAddMemberSerializer
 
@@ -369,7 +409,6 @@ class GroupAddMembersView(generics.GenericAPIView):
 
     def get_object(self):
         return Group.objects.get(pk=self.kwargs['group_id'])
-
 
 class GroupRemoveMembersView(generics.GenericAPIView):
     serializer_class = GroupRemoveMemberSerializer
