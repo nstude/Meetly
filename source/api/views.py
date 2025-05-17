@@ -1,34 +1,21 @@
-from django import forms
 from django.db import transaction
+from django.db.models import Q
 from django.http import JsonResponse
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.dispatch import receiver
-from django.shortcuts import render, redirect
 from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
-from django.contrib.auth.decorators import login_required
 from django_filters.rest_framework import DjangoFilterBackend
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
-from django.db.models.signals import post_save
 from rest_framework.exceptions import PermissionDenied
 from rest_framework import status, generics, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from source.api.models import User, Profile, Post, Group, Message, Like
-from django.dispatch import receiver
-from django.views.decorators.http import require_POST
-from django.db.models.signals import post_save
-from django.contrib.auth import logout
-from rest_framework.authtoken.models import Token
-from rest_framework_simplejwt.tokens import RefreshToken
 from source.api.serializers.user_serializers import (
     UserReadSerializer,
     UserCreateSerializer,
@@ -79,6 +66,14 @@ class IsOwnerOrAdminUser(permissions.BasePermission):
         return request.user == obj
 
 
+
+def user_delete_fields(data):
+    data.pop('id', None)
+    data.pop('email', None)
+    
+    return data
+
+
 class UserRetrieveView(generics.RetrieveAPIView):
     queryset = User.objects.all()
     permission_classes = [IsAuthenticated]
@@ -91,13 +86,8 @@ class UserRetrieveView(generics.RetrieveAPIView):
             return super().retrieve(request, *args, **kwargs)
 
         serializer = self.get_serializer(instance)
-        data = serializer.data
-
-        filtered_data = data.copy()
-        filtered_data.pop('id', None)
-        filtered_data.pop('email', None)
-
-        return Response(filtered_data)
+        data = user_delete_fields(serializer.data)
+        return Response(data)
         """
         sensitive_fields = ['phone', 'last_login', 'date_joined']
         for field in sensitive_fields:
@@ -133,9 +123,7 @@ class UserRetrieveAllView(generics.ListAPIView):
             if user_data['id'] == current_user.id or current_user.is_superuser:
                 result.append(user_data)
             else:
-                filtered_data = user_data.copy()
-                filtered_data.pop('id', None)
-                filtered_data.pop('email', None)
+                filtered_data = user_delete_fields(user_data.copy())
                 result.append(filtered_data)
         return result
 
@@ -147,6 +135,26 @@ class UserUpdateView(generics.UpdateAPIView):
     queryset = User.objects.all()
     permission_classes = [IsAuthenticated]
     serializer_class = UserUpdateSerializer
+
+    def perform_update(self, serializer):
+        instance = serializer.instance
+
+        if not (self.request.user == instance or self.request.user.is_superuser):
+            raise PermissionDenied("Вы не имеете прав для редактирования этого аккаунта")
+
+        serializer.save()
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        
+        self.perform_update(serializer)
+        
+        return Response(
+            {"detail": "Данные успешно обновлены"},
+            status=status.HTTP_200_OK
+        )
 
 class UserDestroyView(generics.DestroyAPIView):
     queryset = User.objects.all()
@@ -191,6 +199,15 @@ class UserPostsRetrieveView(generics.ListAPIView):
 
 
 # ---------------- Профиль пользователя  ----------------
+def profile_delete_fields(data):
+    data.pop('id', None)
+    data.pop('age', None)
+    data.pop('birth_date', None)
+    data['user'].pop('id', None)
+    data['user'].pop('email', None)
+    
+    return data
+
 class ProfileRetrieveView(generics.RetrieveAPIView):
     queryset = Profile.objects.all()
     serializer_class = ProfileReadSerializer
@@ -200,8 +217,7 @@ class ProfileRetrieveView(generics.RetrieveAPIView):
         profile = self.get_object()
         if request.user != profile.user:
             serializer = self.get_serializer(profile)
-            data = serializer.data
-            data.pop('friends', None)  
+            data = profile_delete_fields(serializer.data) 
             return Response(data)
         return super().retrieve(request, *args, **kwargs)
 
@@ -223,14 +239,14 @@ class ProfileRetrieveAllView(generics.ListAPIView):
             data = serializer.data
             for profile in data:
                 if request.user.id != profile.get('user').get('id'):  
-                    profile.pop('friends', None)
+                    profile = profile_delete_fields(profile)
             return self.get_paginated_response(data)
 
         serializer = self.get_serializer(queryset, many=True)
         data = serializer.data
         for profile in data:
             if request.user.id != profile.get('user').get('id'):  
-                profile.pop('friends', None)
+                profile = profile_delete_fields(profile)
         return Response(data)
 
 class ProfileCreateView(generics.CreateAPIView):
@@ -380,7 +396,9 @@ class GroupRetrieveView(generics.RetrieveAPIView):
     serializer_class = GroupReadSerializer
     def get_queryset(self):
         user = self.request.user
-        return Group.objects.filter(members=user)
+        return Group.objects.filter(
+            Q(members=user) | Q(author=user)
+        ).distinct()
 
 class GroupRetrieveAllView(generics.ListAPIView):
     queryset = Group.objects.all()
@@ -390,7 +408,9 @@ class GroupRetrieveAllView(generics.ListAPIView):
     filterset_fields = ['name', 'author', 'created']
     def get_queryset(self):
         user = self.request.user
-        return Group.objects.filter(members=user)
+        return Group.objects.filter(
+            Q(members=user) | Q(author=user)
+        ).distinct()
 
 class GroupCreateView(generics.CreateAPIView):
     queryset = Group.objects.all()
@@ -441,25 +461,27 @@ class GroupAddMembersView(generics.GenericAPIView):
         return Group.objects.get(pk=self.kwargs['group_id'])
 
 
-class GroupRemoveMembersView(generics.GenericAPIView):
+class GroupRemoveMembersView(APIView):
+    permission_classes = [IsAuthenticated]
     serializer_class = GroupRemoveMemberSerializer
 
-    def post(self, request, *args, **kwargs):
-        group = self.get_object()
-        serializer = self.get_serializer(
+    def post(self, request, group_id):
+        group = get_object_or_404(Group, id=group_id)
+        
+        serializer = self.serializer_class(
             data=request.data,
-            context={'group': group}
+            context={
+                'group': group,
+                'request': request
+            }
         )
         serializer.is_valid(raise_exception=True)
+        result = serializer.save()
         
-        group.members.remove(*serializer.validated_data['members_id'])
-        return Response(
-            {"status": "Пользователи успешно удалены"},
-            status=status.HTTP_200_OK
-        )
-
-    def get_object(self):
-        return Group.objects.get(pk=self.kwargs['group_id'])
+        return Response({
+            "status": "success",
+            **result
+        }, status=status.HTTP_200_OK)
 
 
 
