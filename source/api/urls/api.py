@@ -1,6 +1,6 @@
 
 from django.urls import path
-from source.api.views import (
+from source.api.views.api import (
     UserRetrieveAllView,
     UserCreateView,
     UserRetrieveView,
@@ -9,7 +9,7 @@ from source.api.views import (
     UserGroupsRetrieveView,
     UserPostsRetrieveView
 )
-from source.api.views import (
+from source.api.views.api import (
     ProfileRetrieveAllView,
     ProfileCreateView,
     ProfileRetrieveView,
@@ -19,14 +19,14 @@ from source.api.views import (
     ProfileAddFriendsView,
     ProfileRemoveFriendsView
 )
-from source.api.views import (
+from source.api.views.api import (
     PostRetrieveAllView,
     PostCreateView,
     PostRetrieveView,
     PostUpdateView,
     PostDestroyView
 )
-from source.api.views import (
+from source.api.views.api import (
     GroupRetrieveAllView,
     GroupCreateView,
     GroupRetrieveView,
@@ -35,18 +35,21 @@ from source.api.views import (
     GroupAddMembersView,
     GroupRemoveMembersView
 )
-from source.api.views import (
+from source.api.views.api import (
     MessageRetrieveAllView,
     MessageCreateView,
     MessageRetrieveView,
     MessageUpdateView,
     MessageDestroyView
 )
-from source.api.views import (
+from source.api.views.api import (
     LikeRetrieveAllView,
     LikeCreateView,
     LikeRetrieveView,
     LikeDestroyView
+)
+from source.api.views.api import (
+    ChangePasswordView
 )
 
 
@@ -60,6 +63,7 @@ urlpatterns = [
     path('users/<int:pk>/delete/', UserDestroyView.as_view(), name='user-destroy'),
     path('users/<int:user_id>/groups/', UserGroupsRetrieveView.as_view(), name='user-groups'), # Эндпоинт для групп юзера
     path('users/<int:user_id>/posts/', UserPostsRetrieveView.as_view(), name='user-posts'), # Эндпоинт для постов юзера
+    path('users/change-password/', ChangePasswordView.as_view(), name='change-password'),
 
     # Маршруты для Profile
     path('profiles/', ProfileRetrieveAllView.as_view(), name='profile-retrieve-all'),
