@@ -7,7 +7,7 @@ from .user_serializers import (
     UserUpdateSerializer,
     UserDeleteSerializer
 )
-
+from rest_framework.exceptions import PermissionDenied
 MIN_AGE = 1
 MAX_AGE = 200
 
@@ -172,19 +172,26 @@ class ProfileRemoveFriendsSerializer(serializers.Serializer):
         return data
 
 
-class ProfileDeleteSerializer(ProfileBaseSerializer):
-    user = UserDeleteSerializer(required=False)
-
-    class Meta(ProfileBaseSerializer.Meta):
-        fields = ['id']
+class ProfileDeleteSerializer(serializers.Serializer): #  Не наследуемся от ModelSerializer
+    id = serializers.IntegerField() #  Указываем id профиля
 
     def validate(self, data):
+        # Валидация существования профиля
         if not Profile.objects.filter(id=data['id']).exists():
             raise serializers.ValidationError("Профиль не найден")
         return data
 
-    def delete(self):
-        profile = Profile.objects.get(id=self.validated_data['id'])
-        user = profile.user
-        profile.delete()
-        user.delete()
+
+    def delete(self, user): #  Передаем пользователя
+        profile_id = self.validated_data['id']
+        try:
+            profile = Profile.objects.get(id=profile_id)
+        except Profile.DoesNotExist:
+             raise serializers.ValidationError("Профиль не найден")
+
+        if user != profile.user:
+            raise PermissionDenied("У вас нет прав на удаление этого профиля.") #  Проверяем права доступа
+
+        user = profile.user  # Получаем пользователя перед удалением профиля
+        profile.delete()  # Сначала удаляем профиль
+        user.delete()  # Затем удаляем пользователя
