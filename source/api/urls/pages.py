@@ -10,8 +10,7 @@ from source.api.views.pages import (
 )
 from source.api.views.pages import (
     friends_list,
-    add_friend,
-    remove_friend
+    add_friend    
 )
 from source.api.views.pages import (
     send_message,
@@ -31,8 +30,7 @@ urlpatterns = [
     path('groups/<int:group_id>/', group_detail, name='group-detail'),
     path('groups/<int:group_id>/send/', send_message, name='send-message'),
 
-    path('friends/', friends_list, name='friends-list'),
-    path('friends/add/', add_friend, name='add-friend'),
-    path('friends/remove/<int:friend_id>/', remove_friend, name='remove-friend'),
+    path('friends/', friends_list, name='friends_list'),
+    path('friends/add/', add_friend, name='add_friends')
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

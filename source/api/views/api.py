@@ -220,11 +220,11 @@ class ChangePasswordView(generics.UpdateAPIView):
 
 # ---------------- Профиль пользователя  ----------------
 def profile_delete_fields(data):
-    data.pop('id', None)
+    """data.pop('id', None)
     data.pop('age', None)
     data.pop('birth_date', None)
     data['user'].pop('id', None)
-    data['user'].pop('email', None)
+    data['user'].pop('email', None)"""
     
     return data
 

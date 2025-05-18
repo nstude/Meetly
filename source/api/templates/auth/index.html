@@ -110,22 +110,23 @@
             }
 
             try {
-                // Проверяем токен через API
+                console.log('До респонса.');
                 const response = await fetch('{% url "current_user" %}', {
                     headers: {
                         'Authorization': 'Bearer ' + accessToken,
                         'Content-Type': 'application/json'
                     }
                 });
-
+                console.log('После респонса.');
                 if (!response.ok) {
-                    // Попробуем обновить токен, если он истёк
+                    console.log('Ответ не ок.');
                     await tryRefreshToken();
                     return;
                 }
 
                 const data = await response.json();
                 updateAuthUI(data);
+                console.log('Ответ ок.');
                 
             } catch (error) {
                 console.error('Ошибка проверки авторизации:', error);
@@ -137,10 +138,12 @@
             const refreshToken = localStorage.getItem('refresh');
             if (!refreshToken) {
                 showNotAuth();
+                console.log('Нету рефреша.');
                 return;
             }
 
             try {
+                console.log('До респонса.');
                 const response = await fetch('/auth/token/refresh/', {
                     method: 'POST',
                     headers: {
@@ -148,12 +151,17 @@
                     },
                     body: JSON.stringify({ refresh: refreshToken })
                 });
+                console.log('После респонса.');
 
-                if (!response.ok) throw new Error('Не удалось обновить токен');
-
+                if (!response.ok) {
+                    console.log('Ответ не ок.');
+                    throw new Error('Не удалось обновить токен');
+                }
+                
                 const data = await response.json();
                 localStorage.setItem('access', data.access);
                 await checkAuthStatus(); // Повторная проверка
+                console.log('Ответ ок.');
                 
             } catch (error) {
                 console.error('Ошибка обновления токена:', error);
@@ -175,7 +183,7 @@
             
             navLinks.innerHTML = `
                 <a href="{% url 'index_page' %}">Главная</a>
-                <a href="{% url 'friends-list' %}" style="margin-right: 10px;">Друзья</a>
+                <a href="{% url 'friends_list' %}" style="margin-right: 10px;">Друзья</a>
                 <a href="#" onclick="loadGroupsPage(event)">Группы</a>
             `;
             

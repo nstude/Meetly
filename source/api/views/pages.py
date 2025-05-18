@@ -8,7 +8,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import authenticate, login
 
-from source.api.models import User, Group, Message
+from source.api.models import User, Profile, Group, Message
 
 import logging
 logger = logging.getLogger(__name__)
@@ -67,40 +67,32 @@ def send_message(request):
 
 
 # ---------------- Друзья ----------------
+@login_required
 def friends_list(request):
-    return render(request, 'profile/friends/list.html')
+    try:
+        profile = request.user.profile
+        friends = profile.friends.all().select_related('user')
 
+        context = {
+            'friends': [friend.user for friend in friends],
+            'friends_count': friends.count()
+        }
 
+    except Profile.DoesNotExist:
+        context = {
+            'friends': [],
+            'friends_count': 0,
+            'error': 'Профиль не найден'
+        }
+
+    return render(request, 'profile/friends/list.html', context)
+
+@login_required
 def add_friend(request):
-    return redirect('friends-list')
+    profiles = Profile.objects.exclude(user=request.user)
 
+    context = {
+        'profiles': profiles
+    }
 
-def remove_friend(request, friend_id):
-    return redirect('friends-list')
-
-"""class AddFriendView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        user_id = request.data.get('profile_id')
-        if not user_id:
-            return Response({'error': 'ID профиля обязателен'}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            user = User.objects.get(id=user_id)
-            friend_profile = user.profile
-            profile = request.user.profile
-            if friend_profile in profile.friends.all():
-                return Response({'error': 'Этот пользователь уже в списке ваших друзей.'}, status=status.HTTP_400_BAD_REQUEST)
-            profile.friends.add(friend_profile)
-
-            return Response({'success': True}, status=status.HTTP_200_OK)
-
-        except Profile.DoesNotExist:
-            return Response({'error': 'Профиль не найден'}, status=status.HTTP_404_NOT_FOUND)
-
-        except Exception as e:
-            import logging
-            logger = logging.getLogger(name)
-            logger.exception("Ошибка при добавлении в друзья")
-            return Response({'error': 'Произошла ошибка на сервере'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)"""
+    return render(request, 'profile/friends/add.html', context)
