@@ -207,14 +207,17 @@
             {% for friend in friends %}
                 <div class="friend-card">
                     <div class="friend-avatar">
-                        <img src="{{ friend.avatar|default:'/static/default_avatar.png' }}" alt="{{ friend.username }}">
+                        <img src="{{ friend.avatar|default:'/media/profile_pictures/cat.jpg' }}" alt="{{ friend.username }}">
                     </div>
                     <div class="friend-info">
                         <h5>{{ friend.full_name|default:friend.username }}</h5>
                         <p>@{{ friend.username }}</p>
                         <div class="friend-actions">
                             <a href="{% url 'profile-retrieve' friend.id %}" class="btn-outline-primary">Профиль</a>
-                            <button class="btn-outline-danger remove-friend" data-user="{{ friend.username }}">
+                            <button class="btn-outline-danger remove-friend"
+                                    data-profileid="{{ request.user.profile.id }}"
+                                    data-friendid="{{ friend.id }} "
+                                    data-friendname="{{ friend.username }} ">
                                 Удалить
                             </button>
                         </div>
@@ -237,14 +240,24 @@
 <script>
     document.querySelectorAll('.remove-friend').forEach(btn => {
         btn.addEventListener('click', function() {
-            const username = this.dataset.user;
-            if (confirm(`Удалить ${username} из друзей?`)) {
-                fetch(`/api/friends/remove/${username}/`, {
+
+            const profile_id = parseInt(this.dataset.profileid);
+            const friend_id = parseInt(this.dataset.friendid);
+            const friend_name = this.dataset.friendname;
+            console.log(JSON.stringify({
+                        friends_id: [friend_id]
+                    }));
+
+            if (confirm(`Удалить ${friend_name} из друзей?`)) {
+                fetch(`/api/profiles/${profile_id}/friends/remove/`, {
                     method: 'POST',
                     headers: {
-                        'X-CSRFToken': '{{ csrf_token }}',
-                        'Content-Type': 'application/json'
-                    }
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + localStorage.getItem('access')
+                    },
+                    body: JSON.stringify({
+                        friends_id: [friend_id]
+                    })
                 })
                 .then(response => response.json())
                 .then(data => {
