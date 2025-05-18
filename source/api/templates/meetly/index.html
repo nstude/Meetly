@@ -64,7 +64,7 @@
 
     <nav>
         <div id="nav-links">
-            <a href="{% url 'index' %}">Главная</a>
+            <a href="{% url 'index-page' %}">Главная</a>
             <!-- "Друзья" и "Сообщения" добавятся через JS -->
         </div>
         <div id="nav-auth">
@@ -93,6 +93,7 @@
             })
             .then(res => {
                 if (!res.ok) throw new Error("Не авторизован");
+                console.warn('Не авторизован')
                 return res.json();
             })
             .then(data => {
@@ -116,6 +117,7 @@
                 showNotAuth();
             });
         } else {
+            console.warn('Нету аксес')
             showNotAuth();
         }
 
@@ -130,7 +132,7 @@
         function logout() {
             localStorage.removeItem('access');
             localStorage.removeItem('refresh');
-            window.location.href = '{% url "index" %}';
+            window.location.href = '{% url "index-page" %}';
         }
     </script>
 
