@@ -69,13 +69,16 @@
 <body>
     <div class="login-container">
         <h2>Войти</h2>
-        <div class="error" id="error">{{ error }}</div>
-        <form id="login-form">
+        <div class="error" id="error"></div>
+        <form id="login-form" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}">
+
             <label for="username">Имя пользователя:</label>
-            <input type="text" id="username" name="username">
+            <input type="text" id="username" name="username" required>
 
             <label for="password">Пароль:</label>
-            <input type="password" id="password" name="password">
+            <input type="password" id="password" name="password" required>
 
             <button type="submit">Войти</button>
         </form>
@@ -87,23 +90,39 @@
 
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            const nextUrl = new URLSearchParams(window.location.search).get('next') || '{% url "index_page" %}';
 
-            const response = await fetch('{% url "login" %}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ username, password })
-            });
+            try {
+                const response = await fetch('/auth/login/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ 
+                        username: username, 
+                        password: password 
+                    })
+                });
 
-            const data = await response.json();
+                const data = await response.json();
 
-            if (response.ok) {
-                localStorage.setItem('access', data.access);
-                localStorage.setItem('refresh', data.refresh);
-                window.location.href = '{% url "index-page" %}';
-            } else {
-                document.getElementById('error').textContent = 'Имя пользователя или пароль неверны';
+                if (response.ok) {
+                    // Сохраняем не только токены, но и имя пользователя
+                    localStorage.setItem('access', data.access);
+                    localStorage.setItem('refresh', data.refresh);
+                    localStorage.setItem('username', username);
+                    
+                    // Принудительно обновляем страницу с очисткой кеша
+                    window.location.href = nextUrl + '?nocache=' + new Date().getTime();
+                } else {
+                    document.getElementById('error').textContent = 
+                        data.detail || 'Имя пользователя или пароль неверны';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('error').textContent = 'Ошибка соединения с сервером';
             }
         });
     </script>

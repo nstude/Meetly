@@ -209,8 +209,8 @@ class ChangePasswordView(generics.UpdateAPIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        if len(serializer.data['new_password']) < 8:
-            return JsonResponse({'detail': 'Пароль должен быть не менее 8 символов.'}, status=400)
+        """if len(serializer.data['new_password']) < 8:
+            return JsonResponse({'detail': 'Пароль должен быть не менее 8 символов.'}, status=400)"""
         
         user.set_password(serializer.data['new_password'])
         user.save()

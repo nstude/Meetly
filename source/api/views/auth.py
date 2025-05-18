@@ -69,7 +69,7 @@ logger = logging.getLogger(__name__)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class LoginView(View):
-    template_name = 'meetly/login.html'
+    template_name = 'auth/login.html'
 
     def get(self, request):
         form = AuthenticationForm()
@@ -98,8 +98,8 @@ class LoginView(View):
                 print(f"User '{user.username}' logged in successfully. Access token (truncated): {access_token[:20]}..., Refresh token (truncated): {refresh_token[:20]}...")
 
                 return JsonResponse({
-                    'access_token': access_token,
-                    'refresh_token': refresh_token,
+                    'access': access_token,
+                    'refresh': refresh_token,
                     'username': user.username,
                 })
             else:

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-8">
+            <h1>{{ group.name }}</h1>
+            <p>Создатель: {{ group.author.username }}</p>
+            
+            <div class="messages-container mb-4">
+                {% for message in messages %}
+                <div class="card mb-2">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ message.author.username }}</h5>
+                        <p class="card-text">{{ message.content }}</p>
+                        <small class="text-muted">{{ message.timestamp }}</small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <form method="POST" action="{{ url('send_message') }}">
+                <input type="hidden" name="group_id" value="{{ group.id }}">
+                <div class="form-group">
+                    <textarea class="form-control" name="content" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Отправить</button>
+            </form>
+        </div>
+        
+        <div class="col-md-4">
+            <h3>Участники</h3>
+            <ul class="list-group">
+                {% for member in group.members.all() %}
+                <li class="list-group-item">{{ member.username }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

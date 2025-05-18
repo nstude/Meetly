@@ -4,7 +4,11 @@ from dotenv import load_dotenv
 from datetime import timedelta
 load_dotenv()
 
-LOGIN_URL = 'login' 
+
+# ---------------- LOGIN ----------------
+LOGIN_URL = 'login'
+
+
 # ---------------- DEBUG ----------------
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -66,7 +70,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'source.api.middleware.JWTAuthMiddleware'
+    #'source.api.middleware.JWTAuthMiddleware'
     
 ]
 

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>Мои друзья</h1>
+
+    <div id="auth-error" class="alert alert-danger d-none"></div>
+    
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <form id="add-friend-form" method="POST" action="{% url 'add-friend' %}">
+                {% csrf_token %}
+                <div class="input-group">
+                    <input type="text" class="form-control" name="username" placeholder="Имя пользователя" required>
+                    <input type="hidden" id="jwt-token" name="jwt_token">
+                    <div class="input-group-append">
+                        <button class="btn btn-success" type="submit">Добавить</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="row">
+        {% for friend in friends %}
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ friend.username }}</h5>
+                    <form class="remove-friend-form" action="{% url 'remove-friend' friend_id=friend.id %}" method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="jwt_token">
+                        <button type="submit" class="btn btn-danger">Удалить</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const accessToken = localStorage.getItem('access');
+        const jwtTokenInputs = document.querySelectorAll('input[name="jwt_token"]');
+        const authError = document.getElementById('auth-error');
+
+        // Проверка авторизации
+        if (!accessToken) {
+            if (authError) {
+                authError.classList.remove('d-none');
+                authError.textContent = 'Ошибка авторизации. Пожалуйста, войдите в систему.';
+            }
+            return;
+        }
+
+        // Заполнение токенов
+        jwtTokenInputs.forEach(input => {
+            input.value = accessToken;
+        });
+
+        // Обработка всех форм
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                if (!accessToken) {
+                    e.preventDefault();
+                    window.location.href = '{% url "login_page" %}';
+                    return;
+                }
+                
+                if (!this.querySelector('input[name="jwt_token"]')) {
+                    const tokenInput = document.createElement('input');
+                    tokenInput.type = 'hidden';
+                    tokenInput.name = 'jwt_token';
+                    tokenInput.value = accessToken;
+                    this.appendChild(tokenInput);
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}
