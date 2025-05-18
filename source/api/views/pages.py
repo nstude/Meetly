@@ -1,26 +1,98 @@
 from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_http_methods
 
-from source.api.models import User
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from django.contrib.auth import authenticate, login
+
+from source.api.models import User, Profile, Group, Message
+
+import logging
+logger = logging.getLogger(__name__)
+
 
 
 # ---------------- Страницы ----------------
+
+# ---------------- Главная ----------------
 # TO DO Добавить файл бекенда для аутентификации
-def index(request):
-    return render(request, 'meetly/index.html')
+def index_page(request):
+    return render(request, 'auth/index.html')
 
 
+# ---------------- Логин ----------------
+def login_page(request):
+    return render(request, 'auth/login.html')
+
+
+# ---------------- Регистраиция ----------------
+def register_page(request):
+    return render(request, 'auth/register.html')
+
+
+# ---------------- Смена пароля ----------------
 def change_password_page(request):
-    return render(request, 'meetly/change-password.html')
+    return render(request, 'auth/change-password.html')
 
 
-def friends_page(request):
-    profile = request.user.profile 
-    friends_profiles = profile.friends.all() 
-    friends = User.objects.filter(profile__in=friends_profiles)  
-    others = User.objects.exclude(profile__in=friends_profiles).exclude(id=request.user.id)  
+# ---------------- Группа ----------------
+
+def groups_list(request):
+    groups = Group.objects.filter(members=request.user)
+    return render(request, 'groups/list.html', {'groups': groups})
+
+
+def group_detail(request, group_id):
+    group = Group.objects.get(id=group_id)
+    messages = Message.objects.filter(group=group).order_by('-timestamp')[:50]
+    return render(request, 'groups/detail.html', {
+        'group': group,
+        'messages': messages
+    })
+
+
+# ---------------- Сообщение ----------------
+@require_http_methods(["POST"])
+def send_message(request):
+    group = Group.objects.get(id=request.POST['group_id'])
+    Message.objects.create(
+        author=request.user,
+        group=group,
+        content=request.POST['content']
+    )
+    return redirect('group_detail', group_id=group.id)
+
+
+# ---------------- Друзья ----------------
+@login_required
+def friends_list(request):
+    try:
+        profile = request.user.profile
+        friends = profile.friends.all().select_related('user')
+
+        context = {
+            'friends': [friend.user for friend in friends],
+            'friends_count': friends.count()
+        }
+
+    except Profile.DoesNotExist:
+        context = {
+            'friends': [],
+            'friends_count': 0,
+            'error': 'Профиль не найден'
+        }
+
+    return render(request, 'profile/friends/list.html', context)
+
+@login_required
+def add_friend(request):
+    profiles = Profile.objects.exclude(user=request.user)
+
     context = {
-        'friends': friends,
-        'others': others,
+        'profiles': profiles
     }
-    return render(request, 'friends.html', context)
+
+    return render(request, 'profile/friends/add.html', context)

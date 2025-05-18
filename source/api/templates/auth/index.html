@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meetly</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+        header {
+            background-color: #4267B2;
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+        }
+        nav {
+            background-color: #fff;
+            padding: 10px 20px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+        }
+        nav a {
+            margin-right: 15px;
+            text-decoration: none;
+            color: #333;
+        }
+        .container {
+            display: flex;
+            padding: 20px;
+        }
+        .sidebar {
+            width: 25%;
+            padding-right: 20px;
+        }
+        .feed {
+            width: 75%;
+        }
+        .post {
+            background-color: white;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .logout-btn {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Meetly</h1>
+    </header>
+
+    <nav>
+        <div id="nav-links">
+            <a href="{% url 'index_page' %}">Главная</a>
+        </div>
+        <div id="nav-auth">
+            <span class="loading">Проверка авторизации...</span>
+        </div>
+    </nav>
+
+    <div class="container">
+        <aside class="sidebar">
+            <h3>Мой профиль</h3>
+            <p id="username-display" class="loading">Загрузка...</p>
+        </aside>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Проверяем авторизацию при загрузке страницы
+            checkAuthStatus();
+            
+            // Если есть параметр ?nocache в URL - очищаем localStorage от старых данных
+            if (new URLSearchParams(window.location.search).has('nocache')) {
+                localStorage.removeItem('access');
+                localStorage.removeItem('refresh');
+                localStorage.removeItem('username');
+            }
+        });
+
+        async function checkAuthStatus() {
+            const accessToken = localStorage.getItem('access');
+            const storedUsername = localStorage.getItem('username');
+            const navAuth = document.getElementById('nav-auth');
+            const usernameDisplay = document.getElementById('username-display');
+            const navLinks = document.getElementById('nav-links');
+
+            // Сначала показываем имя из localStorage (если есть)
+            if (storedUsername) {
+                usernameDisplay.textContent = storedUsername;
+                usernameDisplay.classList.remove('loading');
+            }
+
+            if (!accessToken) {
+                showNotAuth();
+                return;
+            }
+
+            try {
+                console.log('До респонса.');
+                const response = await fetch('{% url "current_user" %}', {
+                    headers: {
+                        'Authorization': 'Bearer ' + accessToken,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                console.log('После респонса.');
+                if (!response.ok) {
+                    console.log('Ответ не ок.');
+                    await tryRefreshToken();
+                    return;
+                }
+
+                const data = await response.json();
+                updateAuthUI(data);
+                console.log('Ответ ок.');
+                
+            } catch (error) {
+                console.error('Ошибка проверки авторизации:', error);
+                showNotAuth();
+            }
+        }
+
+        async function tryRefreshToken() {
+            const refreshToken = localStorage.getItem('refresh');
+            if (!refreshToken) {
+                showNotAuth();
+                console.log('Нету рефреша.');
+                return;
+            }
+
+            try {
+                console.log('До респонса.');
+                const response = await fetch('/auth/token/refresh/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ refresh: refreshToken })
+                });
+                console.log('После респонса.');
+
+                if (!response.ok) {
+                    console.log('Ответ не ок.');
+                    throw new Error('Не удалось обновить токен');
+                }
+                
+                const data = await response.json();
+                localStorage.setItem('access', data.access);
+                await checkAuthStatus(); // Повторная проверка
+                console.log('Ответ ок.');
+                
+            } catch (error) {
+                console.error('Ошибка обновления токена:', error);
+                showNotAuth();
+            }
+        }
+
+        function updateAuthUI(userData) {
+            const usernameDisplay = document.getElementById('username-display');
+            const navAuth = document.getElementById('nav-auth');
+            const navLinks = document.getElementById('nav-links');
+
+            // Сохраняем имя пользователя
+            localStorage.setItem('username', userData.username);
+            
+            // Обновляем интерфейс
+            usernameDisplay.textContent = userData.username;
+            usernameDisplay.classList.remove('loading');
+            
+            navLinks.innerHTML = `
+                <a href="{% url 'index_page' %}">Главная</a>
+                <a href="{% url 'friends_list' %}" style="margin-right: 10px;">Друзья</a>
+                <a href="#" onclick="loadGroupsPage(event)">Группы</a>
+            `;
+            
+            navAuth.innerHTML = 
+                `<a href="/profile/">Профиль</a>
+                <a href="{% url 'change_password_page' %}" style="margin-right: 10px;">Сменить пароль</a>
+                <button class="logout-btn" onclick="logout()">Выход</button>`;
+        }
+
+        function showNotAuth() {
+            const usernameDisplay = document.getElementById('username-display');
+            const navAuth = document.getElementById('nav-auth');
+            const navLinks = document.getElementById('nav-links');
+
+            usernameDisplay.textContent = 'Гость';
+            usernameDisplay.classList.remove('loading');
+            
+            navLinks.innerHTML = `
+                <a href="{% url 'index_page' %}">Главная</a>
+            `;
+            
+            navAuth.innerHTML = `
+                <a href="{% url 'login_page' %}">Войти</a>
+                <a href="{% url 'register_page' %}" class="register-btn">Регистрация</a>
+            `;
+        }
+
+        function logout() {
+            // Полная очистка данных авторизации
+            localStorage.removeItem('access');
+            localStorage.removeItem('refresh');
+            localStorage.removeItem('username');
+            
+            // Принудительное обновление страницы
+            window.location.href = '{% url "index_page" %}?nocache=' + new Date().getTime();
+        }
+    </script>
+</body>
+</html>

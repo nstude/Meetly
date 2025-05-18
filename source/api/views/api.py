@@ -209,8 +209,8 @@ class ChangePasswordView(generics.UpdateAPIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        if len(serializer.data['new_password']) < 8:
-            return JsonResponse({'detail': 'Пароль должен быть не менее 8 символов.'}, status=400)
+        """if len(serializer.data['new_password']) < 8:
+            return JsonResponse({'detail': 'Пароль должен быть не менее 8 символов.'}, status=400)"""
         
         user.set_password(serializer.data['new_password'])
         user.save()
@@ -220,11 +220,11 @@ class ChangePasswordView(generics.UpdateAPIView):
 
 # ---------------- Профиль пользователя  ----------------
 def profile_delete_fields(data):
-    data.pop('id', None)
+    """data.pop('id', None)
     data.pop('age', None)
     data.pop('birth_date', None)
     data['user'].pop('id', None)
-    data['user'].pop('email', None)
+    data['user'].pop('email', None)"""
     
     return data
 

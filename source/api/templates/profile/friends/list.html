@@ -1,0 +1,261 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    body {
+        background-color: #3498db;
+        margin: 0;
+        font-family: sans-serif;
+    }
+
+    .friends-container {
+        max-width: 960px;
+        margin: 40px auto;
+        padding: 20px;
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+
+    .friends-container h2 {
+        color: #3498db;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .btn-back {
+        background-color: transparent;
+        color: #3498db;
+        border: 2px solid #3498db;
+        border-radius: 5px;
+        padding: 6px 14px;
+        cursor: pointer;
+        font-size: 14px;
+        margin-bottom: 20px;
+        transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    .btn-back:hover {
+        background-color: #2980b9;
+        color: #fff;
+        border-color: #2980b9;
+    }
+
+    .friends-stats {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 25px;
+    }
+
+    .friends-stats .badge {
+        background-color: #3498db;
+        color: white;
+        font-size: 14px;
+        padding: 6px 12px;
+        border-radius: 20px;
+    }
+
+    .friends-stats a.btn {
+        background-color: #2ecc71;
+        color: white;
+        font-size: 14px;
+        padding: 8px 18px;
+        border-radius: 5px;
+        text-decoration: none;
+        transition: background-color 0.3s ease;
+    }
+    .friends-stats a.btn:hover {
+        background-color: #27ae60;
+        color: white;
+    }
+
+    .friends-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+    }
+
+    .friend-card {
+        background: #fff;
+        border-radius: 10px;
+        padding: 15px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+        transition: transform 0.2s ease;
+    }
+    .friend-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+    }
+
+    .friend-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        overflow: hidden;
+        margin-right: 15px;
+        flex-shrink: 0;
+    }
+
+    .friend-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .friend-info {
+        flex-grow: 1;
+    }
+
+    .friend-info h5 {
+        margin: 0 0 6px;
+        color: #333;
+        font-weight: 600;
+    }
+
+    .friend-info p {
+        margin: 0;
+        color: #777;
+        font-size: 14px;
+    }
+
+    .friend-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .friend-actions a,
+    .friend-actions button {
+        font-size: 13px;
+        padding: 6px 12px;
+        border-radius: 5px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        text-decoration: none;
+        user-select: none;
+    }
+
+    .friend-actions a.btn-outline-primary {
+        background-color: transparent;
+        color: #3498db;
+        border-color: #3498db;
+    }
+    .friend-actions a.btn-outline-primary:hover {
+        background-color: #3498db;
+        color: white;
+        border-color: #2980b9;
+    }
+
+    .friend-actions button.btn-outline-danger {
+        background-color: transparent;
+        color: #e74c3c;
+        border-color: #e74c3c;
+    }
+    .friend-actions button.btn-outline-danger:hover {
+        background-color: #e74c3c;
+        color: white;
+        border-color: #c0392b;
+    }
+
+    .empty-friends {
+        text-align: center;
+        padding: 50px 20px;
+        background: rgb(44, 131, 218);
+        border-radius: 10px;
+        color: white;
+    }
+
+    .empty-friends i {
+        font-size: 60px;
+        color: rgb(47, 125, 193);
+        margin-bottom: 20px;
+    }
+
+    footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        color: black;
+        text-align: center;
+        padding: 10px 0;
+        font-size: 14px;
+        z-index: 1000;
+    }
+</style>
+
+<div class="friends-container">
+    <h2>Мои друзья</h2>
+    <button onclick="history.back()" class="btn-back">
+        ← Назад
+    </button>
+
+    {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    <div class="friends-stats">
+        <span class="badge">{{ friends_count }} друзей</span>
+        <a href="{% url 'add_friends' %}" class="btn">Добавить друзей</a>
+    </div>
+
+    {% if friends %}
+        <div class="friends-grid">
+            {% for friend in friends %}
+                <div class="friend-card">
+                    <div class="friend-avatar">
+                        <img src="{{ friend.avatar|default:'/static/default_avatar.png' }}" alt="{{ friend.username }}">
+                    </div>
+                    <div class="friend-info">
+                        <h5>{{ friend.full_name|default:friend.username }}</h5>
+                        <p>@{{ friend.username }}</p>
+                        <div class="friend-actions">
+                            <a href="{% url 'profile-retrieve' friend.id %}" class="btn-outline-primary">Профиль</a>
+                            <button class="btn-outline-danger remove-friend" data-user="{{ friend.username }}">
+                                Удалить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-friends">
+            <i class="bi bi-people-fill"></i>
+            <p>У вас пока нет друзей</p>
+        </div>
+    {% endif %}
+
+    <footer>
+        © 2024 Meetly Project
+    </footer>
+</div>
+
+<script>
+    document.querySelectorAll('.remove-friend').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const username = this.dataset.user;
+            if (confirm(`Удалить ${username} из друзей?`)) {
+                fetch(`/api/friends/remove/${username}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        this.closest('.friend-card').remove();
+                    } else {
+                        alert(data.error || 'Ошибка при удалении');
+                    }
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

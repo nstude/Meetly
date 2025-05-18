@@ -89,7 +89,7 @@
 
 <nav>
     <div id="nav-links">
-        <a href='{% url "index-page" %}'>Главная</a>
+        <a href='{% url "index_page" %}'>Главная</a>
     </div>
     <div id="nav-auth"></div>
 </nav>
@@ -160,7 +160,7 @@
             `;
             navAuth.innerHTML = `
                 <a href="#">Профиль</a>
-                <a href="{% url 'change-password-page' %}" style="margin-right: 10px;">Сменить пароль</a>
+                <a href="{% url 'change_password_page' %}" style="margin-right: 10px;">Сменить пароль</a>
                 <button class="logout-btn" onclick="logout()">Выход</button>
             `;
         })
@@ -182,7 +182,7 @@
     function logout() {
         localStorage.removeItem('access');
         localStorage.removeItem('refresh');
-        window.location.href = '{% url "index-page" %}';
+        window.location.href = '{% url "index_page" %}';
     }
 
     document.addEventListener('DOMContentLoaded', () => {

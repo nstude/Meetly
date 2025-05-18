@@ -3,11 +3,11 @@ from django.urls import path, include
 from django.contrib import admin
 from django.conf.urls.static import static
 
-from source.api.views.auth import LoginView, current_user
-from source.api.views.pages import index 
+from source.api.views.auth import current_user
+from source.api.views.pages import login_page 
 
 urlpatterns = [
-    path('', LoginView.as_view(), name='login'),
+    path('', login_page, name='login_page'),
     path('admin/', admin.site.urls),
     path('api/', include('source.api.urls.api')),
     path('auth/', include('source.api.urls.auth')),
