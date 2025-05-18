@@ -89,7 +89,7 @@
 
 <nav>
     <div id="nav-links">
-        <a href="{% url 'index' %}">Главная</a>
+        <a href='{% url "index-page" %}'>Главная</a>
     </div>
     <div id="nav-auth"></div>
 </nav>
@@ -182,7 +182,7 @@
     function logout() {
         localStorage.removeItem('access');
         localStorage.removeItem('refresh');
-        window.location.href = '{% url 'index' %}';
+        window.location.href = '{% url "index-page" %}';
     }
 
     document.addEventListener('DOMContentLoaded', () => {

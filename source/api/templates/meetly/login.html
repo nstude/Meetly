@@ -88,7 +88,7 @@
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
 
-            const response = await fetch('/login/', {
+            const response = await fetch('{% url "login" %}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -101,7 +101,7 @@
             if (response.ok) {
                 localStorage.setItem('access', data.access);
                 localStorage.setItem('refresh', data.refresh);
-                window.location.href = '/';
+                window.location.href = '{% url "index-page" %}';
             } else {
                 document.getElementById('error').textContent = 'Имя пользователя или пароль неверны';
             }
