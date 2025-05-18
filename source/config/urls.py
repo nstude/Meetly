@@ -13,6 +13,6 @@ urlpatterns = [
     path('auth/', include('source.api.urls.auth')),
     path('page/', include('source.api.urls.pages')),
     path('token/', include('source.api.urls.token')),
-    path('api/user/', current_user, name='current_user'),
+    path('api/user/', current_user, name='current_user'), # TO DO -> source.api.urls.auth
      
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

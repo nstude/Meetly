@@ -1,26 +1,16 @@
-from django.db import transaction
 from django.db.models import Q
 from django.http import JsonResponse
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib import messages
-from django.contrib.auth import login, update_session_auth_hash
-from django.contrib.auth.forms import AuthenticationForm
+from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
 from django_filters.rest_framework import DjangoFilterBackend
+
 from rest_framework.exceptions import PermissionDenied
 from rest_framework import status, generics, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
-from rest_framework_simplejwt.tokens import RefreshToken
-from django.views import View
-from rest_framework.decorators import permission_classes
-import json
-import logging
-from rest_framework.decorators import api_view
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
+
 from source.api.models import User, Profile, Post, Group, Message, Like
 from source.api.serializers.auth_serializers import ChangePasswordSerializer
 from source.api.serializers.user_serializers import (
@@ -593,161 +583,3 @@ class LikeDestroyView(generics.DestroyAPIView):
             raise PermissionDenied("Вы не можете удалять чужие лайки.")
         return like
 
-
-
-# ---------------- Регистрация ----------------
-
-class RegisterView(generics.CreateAPIView):
-    serializer_class = ProfileCreateSerializer
-    
-    @transaction.atomic
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        try:
-            profile = serializer.save()
-            
-            return Response(
-                {
-                    "status": "success",
-                    "user_id": profile.user.id,
-                    "profile_id": profile.id,
-                    "message": "Регистрация прошла успешно"
-                },
-                status=status.HTTP_201_CREATED
-            )
-
-        except Exception as e:
-            if "unique constraint" in str(e).lower():
-                return Response(
-                    {"error": "Пользователь с такими данными уже существует"},
-                    # TO DO Добавить файл с ошибками
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-
-# ---------------- Смена пароля ----------------
-# TO DO Возможно стоит добавить сериализатор для изменения пароля
-# Если добавлять, то явно в new_password задать min_length=8 и max_length=128
-class ChangePasswordView(APIView):
-    permission_classes = [IsAuthenticated]  
-
-    def post(self, request):
-        user = request.user
-        old_password = request.data.get('old_password')
-        new_password = request.data.get('new_password')
-
-
-        if not user.check_password(old_password):
-            return JsonResponse({'detail': 'Неверный старый пароль.'}, status=400)
-
-        if len(new_password) < 8:
-            return JsonResponse({'detail': 'Пароль должен быть не менее 8 символов.'}, status=400)
-
-        user.set_password(new_password)
-        user.save()
-        update_session_auth_hash(request, user)
-        return JsonResponse({'success': True})
-
-
-# ---------------- Логин ----------------
-# TO DO добавить сериализатор для логина
-# Поменять названия
-logger = logging.getLogger(__name__)
-
-@method_decorator(csrf_exempt, name='dispatch')
-class LoginView(View):
-    template_name = 'meetly/login.html'  # Путь к вашему шаблону login.html
-
-    def get(self, request):
-        """
-        Обрабатывает GET-запросы для отображения формы входа.
-        """
-        form = AuthenticationForm()
-        print("GET request received for login page.")  # Выводим информацию в терминал
-        return render(request, self.template_name, {'form': form})
-
-    def post(self, request):
-        """
-        Обрабатывает POST-запросы для аутентификации пользователя и выдачи JWT.
-        """
-        print(f"Raw request body: {request.body}") # Добавьте это
-        try:
-            data = json.loads(request.body)
-            username = data.get('username')
-            password = data.get('password')
-            print(f"POST request received: username={username}, password={password[:3]}***")  # Логируем начало пароля (безопасность)
-        except json.JSONDecodeError:
-            print("Invalid JSON data received.")
-            return JsonResponse({'error': "Invalid JSON data."}, status=400)
-
-        form = AuthenticationForm(request, data={'username': username, 'password': password})
-        if form.is_valid():
-            user = form.get_user()
-            if user is not None:
-                refresh = RefreshToken.for_user(user)
-                access_token = str(refresh.access_token)
-                refresh_token = str(refresh)
-
-                # Логируем успешную аутентификацию в терминал
-                print(f"User '{user.username}' logged in successfully. Access token (truncated): {access_token[:20]}..., Refresh token (truncated): {refresh_token[:20]}...")
-
-                return JsonResponse({
-                    'access_token': access_token,
-                    'refresh_token': refresh_token,
-                    'username': user.username,
-                })
-            else:
-                print("AuthenticationForm is valid, but form.get_user() returned None.")
-                return JsonResponse({'error': "AuthenticationForm is valid, but no user found."}, status=400)
-        else:
-            print(f"Invalid login attempt. Form errors: {form.errors}")
-            return JsonResponse({'error': "Неверное имя пользователя или пароль."}, status=400)
-
-
-# ---------------- Страницы ----------------
-# TO DO Добавить файл бекенда для аутентификации
-def index(request):
-    return render(request, 'meetly/index.html')
-
-
-def change_password_page(request):
-    return render(request, 'meetly/change-password.html')
-
-
-def friends_page(request):
-    profile = request.user.profile 
-    friends_profiles = profile.friends.all() 
-    friends = User.objects.filter(profile__in=friends_profiles)  
-    others = User.objects.exclude(profile__in=friends_profiles).exclude(id=request.user.id)  
-    context = {
-        'friends': friends,
-        'others': others,
-    }
-    return render(request, 'friends.html', context)
-
-
-class LogoutView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        try:
-            refresh_token = request.data["refresh"]
-            token = RefreshToken(refresh_token)
-            token.blacklist()  
-            return Response({"detail": "Logged out successfully."}, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({"error": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
-        
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def current_user(request):
-    return Response({
-        'username': request.user.username,
-        'email': request.user.email
-    })

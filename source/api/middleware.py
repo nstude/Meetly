@@ -1,11 +1,11 @@
 import jwt
+
 from django.conf import settings
+from django.urls import reverse
 from django.shortcuts import redirect
-from django.urls import reverse, resolve
 from django.utils.deprecation import MiddlewareMixin
 from django.contrib.auth.models import User
-from django.contrib.auth import authenticate, login  
-from django.contrib.auth.models import AnonymousUser
+
 
 ALLOWED_PATHS = [
     reverse('login'),
@@ -43,10 +43,8 @@ class JWTAuthMiddleware(MiddlewareMixin):
                     user = User.objects.get(id=user_id)
                     request.user = user
                     return None
-                    
 
-        # **Ключевое изменение: Не перенаправляем на логин, если мы уже на странице логина**
-        if path != reverse('login'):  
+        if path != reverse('login'):
             return redirect(reverse('login') + '?next=' + request.path)
         else:
             return None 
