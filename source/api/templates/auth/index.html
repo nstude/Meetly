@@ -80,15 +80,15 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Проверяем авторизацию при загрузке страницы
-            checkAuthStatus();
-            
-            // Если есть параметр ?nocache в URL - очищаем localStorage от старых данных
+            /*
+            Здесь возможно проверка на авторизацию обгоняет проверку на кэш, из-за чего происходит преждевременное удаление токенов
             if (new URLSearchParams(window.location.search).has('nocache')) {
                 localStorage.removeItem('access');
                 localStorage.removeItem('refresh');
                 localStorage.removeItem('username');
-            }
+            }*/
+
+            checkAuthStatus();
         });
 
         async function checkAuthStatus() {
@@ -98,7 +98,6 @@
             const usernameDisplay = document.getElementById('username-display');
             const navLinks = document.getElementById('nav-links');
 
-            // Сначала показываем имя из localStorage (если есть)
             if (storedUsername) {
                 usernameDisplay.textContent = storedUsername;
                 usernameDisplay.classList.remove('loading');
@@ -110,23 +109,19 @@
             }
 
             try {
-                console.log('До респонса.');
                 const response = await fetch('{% url "current_user" %}', {
                     headers: {
                         'Authorization': 'Bearer ' + accessToken,
                         'Content-Type': 'application/json'
                     }
                 });
-                console.log('После респонса.');
                 if (!response.ok) {
-                    console.log('Ответ не ок.');
                     await tryRefreshToken();
                     return;
                 }
 
                 const data = await response.json();
                 updateAuthUI(data);
-                console.log('Ответ ок.');
                 
             } catch (error) {
                 console.error('Ошибка проверки авторизации:', error);
@@ -138,12 +133,10 @@
             const refreshToken = localStorage.getItem('refresh');
             if (!refreshToken) {
                 showNotAuth();
-                console.log('Нету рефреша.');
                 return;
             }
 
             try {
-                console.log('До респонса.');
                 const response = await fetch('/auth/token/refresh/', {
                     method: 'POST',
                     headers: {
@@ -151,17 +144,14 @@
                     },
                     body: JSON.stringify({ refresh: refreshToken })
                 });
-                console.log('После респонса.');
 
                 if (!response.ok) {
-                    console.log('Ответ не ок.');
                     throw new Error('Не удалось обновить токен');
                 }
                 
                 const data = await response.json();
                 localStorage.setItem('access', data.access);
                 await checkAuthStatus(); // Повторная проверка
-                console.log('Ответ ок.');
                 
             } catch (error) {
                 console.error('Ошибка обновления токена:', error);
@@ -174,10 +164,8 @@
             const navAuth = document.getElementById('nav-auth');
             const navLinks = document.getElementById('nav-links');
 
-            // Сохраняем имя пользователя
             localStorage.setItem('username', userData.username);
-            
-            // Обновляем интерфейс
+
             usernameDisplay.textContent = userData.username;
             usernameDisplay.classList.remove('loading');
             
@@ -212,13 +200,37 @@
         }
 
         function logout() {
-            // Полная очистка данных авторизации
-            localStorage.removeItem('access');
-            localStorage.removeItem('refresh');
-            localStorage.removeItem('username');
-            
-            // Принудительное обновление страницы
-            window.location.href = '{% url "index_page" %}?nocache=' + new Date().getTime();
+            const refresh = localStorage.getItem("refresh")
+            const access = localStorage.getItem("access");
+
+            fetch("/auth/logout/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + access,
+                },
+                body: JSON.stringify({
+                    refresh: refresh
+                })
+            })
+            .then(response => {
+                if (response.ok) {
+                    localStorage.removeItem("access");
+                    localStorage.removeItem("refresh");
+                    localStorage.removeItem("username");
+
+                    window.location.href = "{% url 'login_page' %}";
+                } else {
+
+                    return response.json().then(data => {
+                        alert(data.error || "Ошибка выхода");
+                    });
+                }
+            })
+            .catch(error => {
+                console.error("Logout error:", error);
+                alert("Произошла ошибка");
+            });
         }
     </script>
 </body>

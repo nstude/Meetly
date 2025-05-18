@@ -1,19 +1,14 @@
-from django.shortcuts import render
+import logging
+
 from django.shortcuts import render, redirect
-from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
-from django.contrib.auth import authenticate, login
-
 from source.api.models import User, Profile, Group, Message
 
-import logging
+
+
 logger = logging.getLogger(__name__)
-
-
 
 # ---------------- Страницы ----------------
 
