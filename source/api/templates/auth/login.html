@@ -70,10 +70,8 @@
     <div class="login-container">
         <h2>Войти</h2>
         <div class="error" id="error"></div>
-        <form id="login-form" method="post">
+        <form id="login-form">
             {% csrf_token %}
-            <input type="hidden" name="next" value="{{ next }}">
-
             <label for="username">Имя пользователя:</label>
             <input type="text" id="username" name="username" required>
 
@@ -91,7 +89,6 @@
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-            const nextUrl = new URLSearchParams(window.location.search).get('next') || '{% url "index_page" %}';
 
             try {
                 const response = await fetch('/auth/login/', {
@@ -109,13 +106,11 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    // Сохраняем не только токены, но и имя пользователя
                     localStorage.setItem('access', data.access);
                     localStorage.setItem('refresh', data.refresh);
                     localStorage.setItem('username', username);
-                    
-                    // Принудительно обновляем страницу с очисткой кеша
-                    window.location.href = nextUrl + '?nocache=' + new Date().getTime();
+
+                    window.location.href = '{% url "index_page" %}?nocache=' + new Date().getTime();
                 } else {
                     document.getElementById('error').textContent = 
                         data.detail || 'Имя пользователя или пароль неверны';

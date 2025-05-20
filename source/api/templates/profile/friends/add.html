@@ -126,11 +126,15 @@
     <div class="profiles-grid">
         {% for profile in profiles %}
             <div class="profile-card">
-                <img src="{{ profile.avatar.url|default:'/static/default_avatar.png' }}" alt="Avatar">
+                <img src="{{ profile.avatar.url|default:'/media/profile_pictures/cat.jpg' }}" alt="Avatar">
                 <h5>{{ profile.full_name|default:profile.user.username }}</h5>
                 <p>@{{ profile.user.username }}</p>
                 <a href="{% url 'profile-retrieve' profile.id %}">Профиль</a>
-                <button class="add-friend-btn" data-user="{{ profile.user.username }}">Добавить</button>
+                <button class="btn-outline-danger add-friend"
+                    data-friendid="{{ profile.id }} "
+                    data-friendname="{{ profile.user.username }} ">
+                    Добавить
+                </button>
             </div>
         {% endfor %}
     </div>
@@ -139,4 +143,40 @@
         © 2024 Meetly Project
     </footer>
 </div>
+
+<script>
+    document.querySelectorAll('.add-friend').forEach(btn => {
+        btn.addEventListener('click', function() {
+
+            const friend_id = parseInt(this.dataset.friendid);
+            const friend_name = this.dataset.friendname;
+
+            if (confirm(`Добавить ${friend_name} в друзья?`)) {
+                fetch(`/api/profiles/friends/add/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + localStorage.getItem('access')
+                    },
+                    body: JSON.stringify({
+                        friends_id: [friend_id]
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status) {
+                        location.reload();
+                    }                  
+                    else {
+                        alert("Произошла ошибка при добавлении");
+                    }
+                })
+                .catch(error => {
+                    console.error("Logout error:", error);
+                    alert("Произошла ошибка при добавлении");
+                });
+            }
+        });
+    });
+</script>
 {% endblock %}

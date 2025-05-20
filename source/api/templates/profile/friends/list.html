@@ -213,11 +213,11 @@
                         <h5>{{ friend.full_name|default:friend.username }}</h5>
                         <p>@{{ friend.username }}</p>
                         <div class="friend-actions">
-                            <a href="{% url 'profile-retrieve' friend.id %}" class="btn-outline-primary">Профиль</a>
+                            <a href="{% url 'profile-retrieve' friend.profile.id %}" class="btn-outline-primary">Профиль</a>
                             <button class="btn-outline-danger remove-friend"
                                     data-profileid="{{ request.user.profile.id }}"
-                                    data-friendid="{{ friend.id }} "
-                                    data-friendname="{{ friend.username }} ">
+                                    data-friendid="{{ friend.profile.id }} "
+                                    data-friendname="{{ friend.profile.user.username }} ">
                                 Удалить
                             </button>
                         </div>
@@ -238,15 +238,18 @@
 </div>
 
 <script>
+    window.addEventListener("pageshow", function (event) {
+        if (event.persisted || performance.getEntriesByType("navigation")[0].type === "back_forward") {
+            location.reload();
+        }
+    });
+
     document.querySelectorAll('.remove-friend').forEach(btn => {
         btn.addEventListener('click', function() {
 
             const profile_id = parseInt(this.dataset.profileid);
             const friend_id = parseInt(this.dataset.friendid);
             const friend_name = this.dataset.friendname;
-            console.log(JSON.stringify({
-                        friends_id: [friend_id]
-                    }));
 
             if (confirm(`Удалить ${friend_name} из друзей?`)) {
                 fetch(`/api/profiles/${profile_id}/friends/remove/`, {
@@ -261,11 +264,16 @@
                 })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success) {
-                        this.closest('.friend-card').remove();
-                    } else {
-                        alert(data.error || 'Ошибка при удалении');
+                    if (data.status) {
+                        location.reload();
+                    }                  
+                    else {
+                        alert("Произошла ошибка при удалении");
                     }
+                })
+                .catch(error => {
+                    console.error("Logout error:", error);
+                    alert("Произошла ошибка при удалении");
                 });
             }
         });

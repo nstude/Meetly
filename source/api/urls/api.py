@@ -72,7 +72,7 @@ urlpatterns = [
     path('profiles/<int:pk>/update/', ProfileUpdateView.as_view(), name='profile-update'),
     path('profiles/<int:pk>/delete/', ProfileDestroyView.as_view(), name='profile-destroy'),
     path('profiles/<int:profile_id>/friends/posts/', ProfileFriendsPostsRetrieveView.as_view(), name='profile-friends-posts'), # Эндпоинт для постов друзей юзера (профиля)
-    path('profiles/<int:profile_id>/friends/add/', ProfileAddFriendsView.as_view(), name='profile-add-friends'),
+    path('profiles/friends/add/', ProfileAddFriendsView.as_view(), name='profile-add-friends'),
     path('profiles/<int:profile_id>/friends/remove/', ProfileRemoveFriendsView.as_view(), name='profile-remove-friends'),
 
     # Маршруты для Post

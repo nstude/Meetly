@@ -219,7 +219,7 @@
                     localStorage.removeItem("refresh");
                     localStorage.removeItem("username");
 
-                    window.location.href = "{% url 'login_page' %}";
+                    window.location.href = "{% url 'login_page' %}?logout=1&nocache=" + new Date().getTime();
                 } else {
 
                     return response.json().then(data => {
