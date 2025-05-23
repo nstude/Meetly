@@ -1,0 +1,149 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap');
+
+/*Цвета:
+Логин:#08457E*/
+
+
+/*------- ШРИФТ -------*/
+* {
+    font-family: "Open Sans", sans-serif;
+}
+
+
+/*------- ФОН -------*/
+body {
+    background-color:  #4285B4;
+}
+
+/* -------- ПРОФИЛИ -------- */
+/* -------- СЕТКА ПРОФИЛЕЙ -------- */
+.profile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+/* -------- КОНТЕЙНЕР ПРОФИЛЕЙ -------- */
+.profiles-container {
+    max-width: 1000px;
+    margin: 40px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+
+/*------- КНОПКА НАЗАД -------*/
+.btn-back {
+    background-color: #2ecc71;
+    color: white;
+    font-size: 14px;
+    padding: 8px 18px;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+    margin-bottom: 10px;
+    border: none;
+}
+
+.btn-back:hover {
+    background-color:rgb(30, 124, 69);
+}
+
+
+/* -------- ФОРМЫ ВВОДА -------- */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea,
+select {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0 20px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    border-color: #3498db;
+    outline: none;
+}
+
+
+
+
+/* -------- ФУТЕР -------- */
+footer {
+    text-align: center;
+    padding: 20px 0;
+    font-size: 14px;
+    color: #aaa;
+}
+
+
+
+
+
+/* -------- КАРТОЧКИ -------- */
+.card {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+
+
+
+/* -------- УВЕДОМЛЕНИЯ -------- */
+.alert {
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+}
+
+.alert-success {
+    background-color: #2ecc71;
+    color: white;
+}
+
+.alert-danger {
+    background-color: #e74c3c;
+    color: white;
+}
+
+.alert-info {
+    background-color: #3498db;
+    color: white;
+}
+
+/* -------- ПУСТОЕ СОСТОЯНИЕ -------- */
+.empty-state {
+    text-align: center;
+    padding: 50px 20px;
+    background: #ecf0f1;
+    border-radius: 10px;
+    color: #7f8c8d;
+}
+
+.empty-state i {
+    font-size: 60px;
+    margin-bottom: 20px;
+}
+
+
+
+/* -------- АДАПТИВНОСТЬ -------- */
+@media (max-width: 768px) {
+    .profile-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .container {
+        width: 95%;
+    }
+}

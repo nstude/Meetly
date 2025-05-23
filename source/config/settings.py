@@ -27,7 +27,16 @@ CSRF_COOKIE_SECURE = True
 
 # ---------------- MEDIA ----------------
 MEDIA_URL = '/media/'
+
 MEDIA_ROOT = BASE_DIR / 'media'
+
+
+# ---------------- STATIC ----------------
+STATIC_URL = '/static/'
+
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
 
 
 # ---------------- URL ----------------
@@ -39,7 +48,6 @@ ROOT_URLCONF = 'source.config.urls'
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
-STATIC_URL = 'static/'
 
 
 
