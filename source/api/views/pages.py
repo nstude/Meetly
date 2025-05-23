@@ -1,5 +1,6 @@
 import logging
 
+from django.db.models import Q
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
@@ -84,7 +85,9 @@ def friends_list(request):
 
 @login_required
 def add_friend(request):
-    profiles = Profile.objects.exclude(user=request.user)
+    profiles = Profile.objects.exclude(
+        Q(user=request.user) | Q(id__in=request.user.profile.friends.all())
+    )
 
     context = {
         'profiles': profiles

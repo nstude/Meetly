@@ -2,42 +2,11 @@
 
 {% block content %}
 <style>
-    body {
-        background-color: #3498db;
-        margin: 0;
-        font-family: sans-serif;
-    }
-
-    .friends-container {
-        max-width: 960px;
-        margin: 40px auto;
-        padding: 20px;
-        background-color: #fff;
-        border-radius: 10px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.2);
-    }
-
-    .friends-container h2 {
+    .profiles-container h2 {
         color: #3498db;
+        font-size: 35px;
         text-align: center;
         margin-bottom: 20px;
-    }
-
-    .btn-back {
-        background-color: transparent;
-        color: #3498db;
-        border: 2px solid #3498db;
-        border-radius: 5px;
-        padding: 6px 14px;
-        cursor: pointer;
-        font-size: 14px;
-        margin-bottom: 20px;
-        transition: background-color 0.3s ease, color 0.3s ease;
-    }
-    .btn-back:hover {
-        background-color: #2980b9;
-        color: #fff;
-        border-color: #2980b9;
     }
 
     .friends-stats {
@@ -50,9 +19,10 @@
     .friends-stats .badge {
         background-color: #3498db;
         color: white;
-        font-size: 14px;
-        padding: 6px 12px;
-        border-radius: 20px;
+        font-size: 18px;
+        padding: 6px 10px;
+        border-radius: 5px;
+        align-items: center;
     }
 
     .friends-stats a.btn {
@@ -64,15 +34,9 @@
         text-decoration: none;
         transition: background-color 0.3s ease;
     }
-    .friends-stats a.btn:hover {
-        background-color: #27ae60;
-        color: white;
-    }
 
-    .friends-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 20px;
+    .friends-stats a.btn:hover {
+        background-color: rgb(30, 124, 69);
     }
 
     .friend-card {
@@ -174,21 +138,10 @@
         margin-bottom: 20px;
     }
 
-    footer {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        color: black;
-        text-align: center;
-        padding: 10px 0;
-        font-size: 14px;
-        z-index: 1000;
-    }
 </style>
 
-<div class="friends-container">
-    <h2>Мои друзья</h2>
+<div class="profiles-container">
+    <h2>Мои подписки</h2>
     <button onclick="history.back()" class="btn-back">
         ← Назад
     </button>
@@ -198,12 +151,12 @@
     {% endif %}
 
     <div class="friends-stats">
-        <span class="badge">{{ friends_count }} друзей</span>
-        <a href="{% url 'add_friends' %}" class="btn">Добавить друзей</a>
+        <span class="badge">У вас {{ friends_count }} подписок</span>
+        <a href="{% url 'add_friends' %}" class="btn">Подписаться</a>
     </div>
 
     {% if friends %}
-        <div class="friends-grid">
+        <div class="profile-grid">
             {% for friend in friends %}
                 <div class="friend-card">
                     <div class="friend-avatar">
@@ -213,11 +166,11 @@
                         <h5>{{ friend.full_name|default:friend.username }}</h5>
                         <p>@{{ friend.username }}</p>
                         <div class="friend-actions">
-                            <a href="{% url 'profile-retrieve' friend.id %}" class="btn-outline-primary">Профиль</a>
+                            <a href="{% url 'profile-retrieve' friend.profile.id %}" class="btn-outline-primary">Профиль</a>
                             <button class="btn-outline-danger remove-friend"
                                     data-profileid="{{ request.user.profile.id }}"
-                                    data-friendid="{{ friend.id }} "
-                                    data-friendname="{{ friend.username }} ">
+                                    data-friendid="{{ friend.profile.id }} "
+                                    data-friendname="{{ friend.profile.user.username }} ">
                                 Удалить
                             </button>
                         </div>
@@ -228,25 +181,24 @@
     {% else %}
         <div class="empty-friends">
             <i class="bi bi-people-fill"></i>
-            <p>У вас пока нет друзей</p>
+            <p>У вас пока нет подписок</p>
         </div>
     {% endif %}
-
-    <footer>
-        © 2024 Meetly Project
-    </footer>
 </div>
 
 <script>
+    window.addEventListener("pageshow", function (event) {
+        if (event.persisted || performance.getEntriesByType("navigation")[0].type === "back_forward") {
+            location.reload();
+        }
+    });
+
     document.querySelectorAll('.remove-friend').forEach(btn => {
         btn.addEventListener('click', function() {
 
             const profile_id = parseInt(this.dataset.profileid);
             const friend_id = parseInt(this.dataset.friendid);
             const friend_name = this.dataset.friendname;
-            console.log(JSON.stringify({
-                        friends_id: [friend_id]
-                    }));
 
             if (confirm(`Удалить ${friend_name} из друзей?`)) {
                 fetch(`/api/profiles/${profile_id}/friends/remove/`, {
@@ -261,11 +213,16 @@
                 })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success) {
-                        this.closest('.friend-card').remove();
-                    } else {
-                        alert(data.error || 'Ошибка при удалении');
+                    if (data.status) {
+                        location.reload();
+                    }                  
+                    else {
+                        alert("Произошла ошибка при удалении");
                     }
+                })
+                .catch(error => {
+                    console.error("Logout error:", error);
+                    alert("Произошла ошибка при удалении");
                 });
             }
         });

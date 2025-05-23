@@ -343,16 +343,13 @@ class ProfileRemoveFriendsView(generics.GenericAPIView):
     def post(self, request, profile_id):
         profile = self.get_object()
 
-        
-        print("REQUEST DATA:", request.data)
         serializer = ProfileRemoveFriendsSerializer(
             data=request.data,
             context={'profile': profile}
         )
         serializer.is_valid(raise_exception=True)
-
         profile.friends.remove(*serializer.validated_data['friends'])
-        print("Сериализатор ошибки:", serializer.errors)
+
         return Response(
             {"status": "Друзья успешно удалены"},
             status=status.HTTP_200_OK
