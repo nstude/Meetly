@@ -26,9 +26,9 @@ urlpatterns = [
     path('register/', register_page, name='register_page'),
     path('change-password/', change_password_page, name='change_password_page'),
 
-    path('groups/', groups_list, name='groups-list'),
-    path('groups/<int:group_id>/', group_detail, name='group-detail'),
-    path('groups/<int:group_id>/send/', send_message, name='send-message'),
+    path('groups/', groups_list, name='groups_list'),
+    path('groups/<int:group_id>/', group_detail, name='group_detail'),
+    path('groups/<int:group_id>/send/', send_message, name='send_message'),
 
     path('friends/', friends_list, name='friends_list'),
     path('friends/add/', add_friend, name='add_friends')

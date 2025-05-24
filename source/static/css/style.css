@@ -1,18 +1,30 @@
-@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap');
-
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
 /*Цвета:
-Логин:#08457E*/
+Фон:#08457E*/
+
 
 
 /*------- ШРИФТ -------*/
-* {
-    font-family: "Open Sans", sans-serif;
+/*.montserrat-font {
+  font-family: "Montserrat", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 200;
+  font-style: normal;
 }
 
+
+* {
+    font-family: montserrat-font;
+}*/
 
 /*------- ФОН -------*/
 body {
     background-color:  #4285B4;
+
+    font-family: "Montserrat", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 500;
+    font-style: normal;
 }
 
 /* -------- ПРОФИЛИ -------- */
@@ -33,7 +45,19 @@ body {
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
 }
 
+/* -------- КОНТЕЙНЕР ГРУПП -------- */
+.groups-container {
+    max-width: 1000px;
+    margin: 40px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
 
+
+
+/*------- КНОПКИ -------*/
 /*------- КНОПКА НАЗАД -------*/
 .btn-back {
     background-color: #2ecc71;
@@ -49,6 +73,13 @@ body {
 .btn-back:hover {
     background-color:rgb(30, 124, 69);
 }
+
+
+/*------- СБРОС СТИЛЯ ШРИФТА ДЛЯ КНОПОК -------*/
+button {
+    font-family: inherit;
+}
+
 
 
 /* -------- ФОРМЫ ВВОДА -------- */

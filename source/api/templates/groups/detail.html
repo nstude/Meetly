@@ -1,41 +1,200 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container">
+
+<style>
+    .group-container {
+        max-width: 1000px;
+        margin: 40px auto;
+        padding: 20px;
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+        font-size: 32px;
+        color: #2c3e50;
+        margin-bottom: 10px;
+    }
+
+    p {
+        color: #7f8c8d;
+        margin-bottom: 25px;
+    }
+
+    .messages-container {
+        max-height: 400px;
+        overflow-y: auto;
+        margin-bottom: 30px;
+        padding-right: 10px;
+    }
+
+    .card {
+        background-color: #f8f9fa;
+        border: 1px solid #e1e4e8;
+        border-radius: 8px;
+    }
+
+    .card-body {
+        padding: 15px;
+    }
+
+    .card-title {
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: #34495e;
+    }
+
+    .card-text {
+        margin-bottom: 10px;
+    }
+
+    .text-muted {
+        font-size: 12px;
+        color: #aaa;
+    }
+
+    form textarea.form-control {
+        width: 95%;
+        min-height: 100px;
+        resize: vertical;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        padding: 10px;
+        margin-bottom: 10px;
+    }
+
+    form .btn {
+        background-color: #2ecc71;
+        border: none;
+        color: white;
+        padding: 10px 20px;
+        font-size: 14px;
+        border-radius: 5px;
+        transition: background-color 0.3s ease;
+    }
+
+    form .btn:hover {
+        background-color: #27ae60;
+    }
+
+    .col-md-4 h3 {
+        margin-top: 20px;
+        margin-bottom: 15px;
+        color: #34495e;
+    }
+
+    .list-group {
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .list-group-item {
+        background-color: #fdfdfd;
+        border: 1px solid #e6e6e6;
+        font-weight: 500;
+        color: #333;
+        padding: 10px 15px;
+    }
+
+    .list-group-item:not(:last-child) {
+        border-bottom: none;
+    }
+
+    @media (max-width: 768px) {
+        .row {
+            flex-direction: column;
+        }
+
+        .col-md-8, .col-md-4 {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="group-container">
+    <button onclick="window.location.href='{% url 'groups_list' %}'" class="btn-back">
+        ← Назад
+    </button>
+
     <div class="row">
         <div class="col-md-8">
             <h1>{{ group.name }}</h1>
             <p>Создатель: {{ group.author.username }}</p>
-            
+
             <div class="messages-container mb-4">
                 {% for message in messages %}
-                <div class="card mb-2">
-                    <div class="card-body">
-                        <h5 class="card-title">{{ message.author.username }}</h5>
-                        <p class="card-text">{{ message.content }}</p>
-                        <small class="text-muted">{{ message.timestamp }}</small>
+                    <div class="card mb-2">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ message.author.username }}</h5>
+                            <p class="card-text">{{ message.content }}</p>
+                            <small class="text-muted">{{ message.timestamp }}</small>
+                        </div>
                     </div>
-                </div>
+                {% empty %}
+                    <p class="text-muted">Сообщений пока нет</p>
                 {% endfor %}
             </div>
-            
-            <form method="POST" action="{{ url('send_message') }}">
+
+            <form id="send-message-form">
+                {% csrf_token %}
                 <input type="hidden" name="group_id" value="{{ group.id }}">
                 <div class="form-group">
-                    <textarea class="form-control" name="content" required></textarea>
+                    <textarea class="form-control" id="content" name="content" placeholder="Напишите сообщение..." required></textarea>
                 </div>
-                <button type="submit" class="btn btn-primary">Отправить</button>
+                <button type="submit" class="btn"
+                    data-authorid="{{ request.user.id }}"
+                    data-profileid="{{ request.user.profile.id }}"
+                    data-groupid="{{ group.id }}">
+                    Отправить
+                </button>
             </form>
         </div>
-        
+
         <div class="col-md-4">
             <h3>Участники</h3>
             <ul class="list-group">
-                {% for member in group.members.all() %}
-                <li class="list-group-item">{{ member.username }}</li>
+                {% for member in group.members.all %}
+                    <li class="list-group-item">{{ member.username }}</li>
+                {% empty %}
+                    <li class="list-group-item">Нет участников</li>
                 {% endfor %}
             </ul>
         </div>
     </div>
 </div>
+
+<script>
+    document.getElementById('send-message-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const group_id = parseInt('{{ group.id }}');
+        const content = document.getElementById('content').value;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        try {
+            const response = await fetch(`/page/groups/${group_id}/send/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Authorization': 'Bearer ' + localStorage.getItem('access')
+                },
+                body: JSON.stringify({
+                    content: content
+                })
+            });
+
+            if (response.ok) {
+                location.reload();
+            } else {
+                const errorData = await response.json();
+                alert("Ошибка: " + (errorData.message || "Неизвестная ошибка"));
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert("Ошибка соединения с сервером");
+        }
+    });
+</script>
 {% endblock %}

@@ -202,7 +202,7 @@
         navLinks.innerHTML = `
             <a href="{% url 'index_page' %}">Главная</a>
             <a href="{% url 'friends_list' %}">Друзья</a>
-            <a href="#" onclick="loadGroupsPage(event)">Группы</a>
+            <a href="{% url 'groups_list' %}">Группы</a>
         `;
         
         navAuth.innerHTML = `
