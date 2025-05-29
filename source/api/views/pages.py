@@ -3,9 +3,12 @@ import logging
 
 from django.db.models import Q
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
+
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 
 from source.api.models import User, Profile, Group, Message
 
@@ -50,6 +53,17 @@ def group_detail(request, group_id):
         'group': group,
         'messages': messages
     })
+
+@login_required
+def leave_group(request, group_id):
+    group = get_object_or_404(Group, id=group_id)
+    
+    if request.method == 'POST':
+        if request.user in group.members.all() and request.user != group.author:
+            group.members.remove(request.user)
+            return redirect('groups_list')
+    
+    return redirect('group_detail', group_id=group.id)
 
 
 # ---------------- Сообщение ----------------

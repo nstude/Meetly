@@ -466,22 +466,28 @@ class GroupDestroyView(generics.DestroyAPIView):
 
 
 # TO DO Возможно стоит переделать через метод PUT/PATCH
-class GroupAddMembersView(generics.GenericAPIView):
-    serializer_class = GroupAddMemberSerializer
-
-    def post(self, request, *args, **kwargs):
-        group = self.get_object()
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        group.members.add(*serializer.validated_data['members_id'])
-        return Response(
-            {"status": "Пользователи успешно добавлены"},
-            status=status.HTTP_200_OK
+class GroupAddMembersView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, group_id):
+        group = get_object_or_404(Group, id=group_id)
+        serializer = GroupAddMemberSerializer(
+            data=request.data,
+            context={
+                'request': request,
+                'group': group
+            }
         )
-
-    def get_object(self):
-        return Group.objects.get(pk=self.kwargs['group_id'])
+        
+        try:
+            serializer.is_valid(raise_exception=True)
+            result = serializer.save()
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {'detail': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 class GroupRemoveMembersView(APIView):

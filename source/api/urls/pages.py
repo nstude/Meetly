@@ -13,11 +13,10 @@ from source.api.views.pages import (
     add_friend    
 )
 from source.api.views.pages import (
-    send_message,
-)
-from source.api.views.pages import (
     groups_list,
     group_detail,
+    send_message,
+    leave_group
 )
 
 urlpatterns = [
@@ -29,6 +28,7 @@ urlpatterns = [
     path('groups/', groups_list, name='groups_list'),
     path('groups/<int:group_id>/', group_detail, name='group_detail'),
     path('groups/<int:group_id>/send/', send_message, name='send_message'),
+    path('groups/<int:group_id>/leave/', leave_group, name='leave_group'),
 
     path('friends/', friends_list, name='friends_list'),
     path('friends/add/', add_friend, name='add_friends')
