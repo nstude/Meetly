@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+
 {% block content %}
 <div class="profile-container">
     <h2>Профиль пользователя</h2>
@@ -16,9 +17,12 @@
         <p><strong>Пол:</strong> <span id="gender-text">{{ profile.gender|default:"Не указано" }}</span></p>
         <p><strong>Дата рождения:</strong> <span id="birthdate-text">{{ profile.birth_date|date:"Y-m-d"|default:"Не указано" }}</span></p>
 
-        <button onclick="enableEdit()">Редактировать профиль</button>
+        {% if request.user == profile.user %}
+            <button onclick="enableEdit()">Редактировать профиль</button>
+        {% endif %}
     </div>
 
+    {% if request.user == profile.user %}
     <form id="edit-form" style="display:none;" onsubmit="submitEdit(event)">
         <label>Имя пользователя:</label><br>
         <input type="text" id="username-input" name="username" value="{{ profile.user.username }}"><br>
@@ -48,6 +52,7 @@
 
     <button id="uploadPhotoBtn">Загрузить фото</button>
     <input type="file" id="photoInput" style="display:none" accept="image/*" />
+    {% endif %}
 </div>
 
 <script>
@@ -100,6 +105,7 @@
         }
     }
 
+    {% if request.user == profile.user %}
     // Загрузка фото
     const uploadBtn = document.getElementById('uploadPhotoBtn');
     const photoInput = document.getElementById('photoInput');
@@ -137,7 +143,6 @@
             const data = await response.json();
             alert('Фото успешно обновлено!');
 
-            // Обновляем фото на странице без перезагрузки
             const img = document.getElementById('profile-photo');
             const placeholder = document.getElementById('profile-photo-placeholder');
             if (img) {
@@ -157,5 +162,6 @@
             console.error(err);
         }
     });
+    {% endif %}
 </script>
 {% endblock %}

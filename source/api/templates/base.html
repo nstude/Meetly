@@ -4,12 +4,184 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Meetly{% endblock %}</title>
-    <link rel="stylesheet" href='{% static "css/style.css" %}'>   
-
+    <link rel="stylesheet" href='{% static "css/style.css" %}'>
     {% block extra_head %}{% endblock %}
 </head>
 <body>
+    <nav class="main-nav">
+        <div class="nav-container">
+            <div class="nav-links" id="nav-links">
+                <a href="{% url 'index_page' %}">Главная</a>
+            </div>
+            <div class="nav-auth" id="nav-auth">
+                <a href="{% url 'login_page' %}">Войти</a>
+                <a href="{% url 'register_page' %}" class="register-btn">Регистрация</a>
+            </div>
+        </div>
+    </nav>
+
     {% block content %}{% endblock %}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const accessToken = localStorage.getItem('access');
+            if (accessToken) {
+                checkAuthStatus();
+            }
+        });
+
+        async function checkAuthStatus() {
+            const accessToken = localStorage.getItem('access');
+            const storedUsername = localStorage.getItem('username');
+            const usernameDisplay = document.getElementById('username-display');
+
+            if (usernameDisplay && storedUsername) {
+                usernameDisplay.textContent = storedUsername;
+            }
+
+            if (!accessToken) {
+                showNotAuth();
+                return;
+            }
+
+            try {
+                const response = await fetch('{% url "current_user" %}', {
+                    headers: {
+                        'Authorization': 'Bearer ' + accessToken,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.status === 401) {
+                    await tryRefreshToken();
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error('Ошибка проверки авторизации');
+                }
+
+                const data = await response.json();
+                updateAuthUI(data);
+                
+            } catch (error) {
+                console.error('Ошибка проверки авторизации:', error);
+                showNotAuth();
+            }
+        }
+
+        function updateAuthUI(userData) {
+            const usernameDisplay = document.getElementById('username-display');
+            const navAuth = document.getElementById('nav-auth');
+            const navLinks = document.getElementById('nav-links');
+            
+            localStorage.setItem('username', userData.username);
+            
+            if (usernameDisplay) {
+                usernameDisplay.textContent = userData.username;
+            }
+            
+            if (navLinks) {
+                navLinks.innerHTML = ` 
+                    <a href="{% url 'index_page' %}">Главная</a>
+                    <a href="{% url 'friends_list' %}">Друзья</a>
+                    <a href="{% url 'groups_list' %}">Группы</a>
+                `;
+            }
+            
+            if (navAuth) {
+                navAuth.innerHTML = `
+                    <a href="{% url 'profile_page' user.profile.id %}">Профиль</a>
+                    <a href="{% url 'change_password_page' %}" style="margin-right: 10px;">Сменить пароль</a>
+                    <button class="logout-btn" onclick="logout()">Выход</button>
+                `;
+            }
+        }
+
+        function showNotAuth() {
+            const usernameDisplay = document.getElementById('username-display');
+            const navAuth = document.getElementById('nav-auth');
+            const navLinks = document.getElementById('nav-links');
+            usernameDisplay.textContent = 'Гость';
+            usernameDisplay.classList.remove('loading');
+            
+            navLinks.innerHTML = `
+                <a href="{% url 'index_page' %}">Главная</a>
+            `;
+            
+            navAuth.innerHTML = `
+                <a href="{% url 'login_page' %}">Войти</a>
+                <a href="{% url 'register_page' %}" class="register-btn">Регистрация</a>
+            `;
+        }
+
+        function logout() {
+            const refresh = localStorage.getItem("refresh")
+            const access = localStorage.getItem("access");
+            fetch("/auth/logout/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + access,
+                },
+                body: JSON.stringify({
+                    refresh: refresh
+                })
+            })
+            .then(response => {
+                if (response.ok) {
+                    localStorage.removeItem("access");
+                    localStorage.removeItem("refresh");
+                    localStorage.removeItem("username");
+                    window.location.href = "{% url 'login_page' %}?logout=1&nocache=" + new Date().getTime();
+                } else {
+                    return response.json().then(data => {
+                        alert(data.error || "Ошибка выхода");
+                    });
+                }
+            })
+            .catch(error => {
+                console.error("Logout error:", error);
+                alert("Произошла ошибка");
+            });
+        }
+
+        async function tryRefreshToken() {
+            const refreshToken = localStorage.getItem('refresh');
+            if (!refreshToken) {
+                showNotAuth();
+                return false;
+            }
+
+            try {
+                const response = await fetch('/auth/token/refresh/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ refresh: refreshToken })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Не удалось обновить токен');
+                }
+
+                const data = await response.json();
+                localStorage.setItem('access', data.access);
+                return true;
+                
+            } catch (error) {
+                console.error('Ошибка обновления токена:', error);
+                localStorage.removeItem('access');
+                localStorage.removeItem('refresh');
+                showNotAuth();
+                return false;
+            }
+        }
+    </script>
+    
+    {% block scripts %}{% endblock %}
 </body>
 </html>

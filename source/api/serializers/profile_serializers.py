@@ -83,7 +83,7 @@ class ProfileUpdateSerializer(ProfileBaseSerializer):
         instance = super().update(instance, validated_data)
 
         if user_data:
-            user_serializer = UserUpdateSerializer(instance.user, data=user_data, partial=True)
+            user_serializer = UserUpdateSerializer(instance.user, data=user_data, partial=True, context=self.context)
             user_serializer.is_valid(raise_exception=True)
             user_serializer.save()
         

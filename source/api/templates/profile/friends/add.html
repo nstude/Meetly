@@ -84,7 +84,7 @@
                 <img src="{{ profile.avatar.url|default:'/media/profile_pictures/tankist.png' }}" alt="Avatar">
                 <h5>{{ profile.full_name|default:profile.user.username }}</h5>
                 <p>@{{ profile.user.username }}</p>
-                <a href="{% url 'profile-retrieve' profile.id %}">Профиль</a>
+                <a href="{% url 'profile_page' profile.id %}">Профиль</a>
                 <button class="btn-outline-danger add-friend"
                     data-friendid="{{ profile.id }} "
                     data-friendname="{{ profile.user.username }} ">

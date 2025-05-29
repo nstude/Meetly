@@ -168,7 +168,7 @@
                         <h5>{{ friend.full_name|default:friend.username }}</h5>
                         <p>@{{ friend.username }}</p>
                         <div class="friend-actions">
-                            <a href="{% url 'profile-retrieve' friend.profile.id %}" class="btn-outline-primary">Профиль</a>
+                            <a href="{% url 'profile_page' friend.profile.id %}" class="btn-outline-primary">Профиль</a>
                             <button class="btn-outline-danger remove-friend"
                                     data-profileid="{{ request.user.profile.id }}"
                                     data-friendid="{{ friend.profile.id }} "
