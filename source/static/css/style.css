@@ -27,6 +27,70 @@ body {
     font-style: normal;
 }
 
+
+/*------- НАВИГАЦИЯ -------*/
+.main-nav {
+    background-color: #4267B2;
+    color: white;
+    padding: 15px 0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+}
+
+.nav-links, .nav-auth {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.nav-links a, .nav-auth a {
+    color: white;
+    text-decoration: none;
+    font-weight: 500;
+    transition: opacity 0.3s;
+}
+
+.nav-links a:hover, .nav-auth a:hover {
+    opacity: 0.8;
+}
+
+.logout-btn {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 14px;
+}
+.logout-btn:hover {
+    background-color:rgb(151, 46, 38);
+}
+
+.register-btn {
+    background-color: #4CAF50;
+    padding: 8px 16px;
+    border-radius: 4px;
+}
+
+.content-wrapper {
+    max-width: 1600px;
+    max-height: 1600px;
+    margin: 20px auto;
+    padding: 0 20px;
+}
+
+
+
+
 /* -------- ПРОФИЛИ -------- */
 /* -------- СЕТКА ПРОФИЛЕЙ -------- */
 .profile-grid {

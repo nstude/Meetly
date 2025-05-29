@@ -5,7 +5,7 @@
 <style>
     .group-container {
         max-width: 90%;
-        max-height: 1200px;
+        max-height: 1300px;
         margin: 40px auto;
         padding: 50px;
         background-color: #fff;
@@ -323,7 +323,7 @@
                                 <div class="member-info">
                                     <h5>{{ profile.full_name|default:profile.user.username }}</h5>
                                     <div class="member-actions">
-                                        <a href="{% url 'profile-retrieve' profile.id %}" class="btn-outline-primary">Профиль</a>
+                                        <a href="{% url 'profile_page' profile.id %}" class="btn-outline-primary">Профиль</a>
                                         <button onclick="handleAddMembers({{ group.id }}, {{ profile.user.id }})" class="btn-add">
                                             Добавить в группу
                                         </button>
@@ -346,7 +346,7 @@
                                     <h5>{{ member.full_name|default:member.username }}</h5>
                                     <div class="member-actions">
                                         {% if member != group.author %}
-                                            <a href="{% url 'profile-retrieve' member.profile.id %}" class="btn-outline-primary">Профиль</a>
+                                            <a href="{% url 'profile_page' member.profile.id %}" class="btn-outline-primary">Профиль</a>
                                             {% if user == group.author %}
                                                 <button onclick="handleRemoveMembers({{ group.id }}, {{ member.id }})" class="btn-outline-danger">
                                                     Удалить из группы

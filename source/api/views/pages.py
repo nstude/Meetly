@@ -39,6 +39,13 @@ def change_password_page(request):
     return render(request, 'auth/change-password.html')
 
 
+# ---------------- Профиль ----------------
+@login_required
+def profile_page(request, profile_id):
+    profile = get_object_or_404(Profile, id=profile_id)
+    return render(request, 'profile.html', {'profile': profile})
+
+
 # ---------------- Группа ----------------
 @login_required
 def groups_list(request):
@@ -117,7 +124,3 @@ def add_friend(request):
     return render(request, 'profile/friends/add.html', context)
 
 
-@login_required
-def profile_page(request):
-    profile = Profile.objects.get(user=request.user)
-    return render(request, 'profile.html', {'profile': profile})
