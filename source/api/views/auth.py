@@ -31,6 +31,7 @@ def current_user(request):
 
 
 # ---------------- Регистрация ----------------
+
 class RegisterView(generics.CreateAPIView):
     serializer_class = ProfileCreateSerializer
     

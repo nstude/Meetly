@@ -77,6 +77,24 @@
         margin-bottom: 15px;
     }
 
+
+    .login-container .register-class button {
+        background-color: #b22222; /* темно-красный */
+        color: #fff;
+        padding: 12px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 20px;
+        transition: background-color 0.3s ease;
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    .login-container .register-class button:hover {
+        background-color: #8b0000; /* еще темнее при наведении */
+    }
+
 </style>
 
 <div class="login-page">
@@ -93,6 +111,10 @@
 
             <div class="login-class">
                 <button type="submit">Войти</button>
+            </div>
+
+            <div class="register-class">
+                <button type="button" onclick="window.location.href='/page/register/'">Регистрация</button>
             </div>
         </form>
     </div>
