@@ -115,3 +115,9 @@ def add_friend(request):
     }
 
     return render(request, 'profile/friends/add.html', context)
+
+
+@login_required
+def profile_page(request):
+    profile = Profile.objects.get(user=request.user)
+    return render(request, 'profile.html', {'profile': profile})

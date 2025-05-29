@@ -24,7 +24,9 @@ from source.api.views.api import (
     PostCreateView,
     PostRetrieveView,
     PostUpdateView,
-    PostDestroyView
+    PostDestroyView,
+    PostLikeAddRemoveView
+    #PostCommentAddView
 )
 from source.api.views.api import (
     GroupRetrieveAllView,
@@ -81,6 +83,8 @@ urlpatterns = [
     path('posts/<int:pk>/', PostRetrieveView.as_view(), name='post-retrieve'),
     path('posts/<int:pk>/update/', PostUpdateView.as_view(), name='post-update'),
     path('posts/<int:pk>/delete/', PostDestroyView.as_view(), name='post-destroy'),
+    path('posts/<int:pk>/like/', PostLikeAddRemoveView.as_view(), name='post-like'),
+    #path('posts/<int:pk>/comment/add', PostCommentAddView.as_view(), name='post-like'),
 
     # Маршруты для Group
     path('groups/', GroupRetrieveAllView.as_view(), name='group-retrieve-all'),

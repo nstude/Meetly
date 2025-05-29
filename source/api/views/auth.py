@@ -25,7 +25,8 @@ from source.api.serializers.profile_serializers import ProfileCreateSerializer
 def current_user(request):
     return Response({
         'username': request.user.username,
-        'email': request.user.email
+        'email': request.user.email,
+        'id':request.user.id
     })
 
 
