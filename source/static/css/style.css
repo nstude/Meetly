@@ -138,22 +138,6 @@ body {
     background-color:rgb(30, 124, 69);
 }
 
-/*------- КНОПКА ПРОФИЛЯ -------*/
-.profile-btn {
-    background-color: #2ecc71;
-    color: white;
-    font-size: 14px;
-    padding: 8px 18px;
-    border-radius: 5px;
-    transition: background-color 0.3s ease;
-    margin-bottom: 10px;
-    border: none;
-}
-
-.profile-btn:hover {
-    background-color:rgb(30, 124, 69);
-}
-
 
 /*------- СБРОС СТИЛЯ ШРИФТА ДЛЯ КНОПОК -------*/
 button {
