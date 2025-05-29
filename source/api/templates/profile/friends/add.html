@@ -71,6 +71,8 @@
 </style>
 
 <div class="profiles-container">
+    {% csrf_token %}
+
     <h2>Подписаться на пользователя</h2>
     <button onclick="history.back()" class="btn-back">
         ← Назад
@@ -79,7 +81,7 @@
     <div class="profile-grid">
         {% for profile in profiles %}
             <div class="profile-card">
-                <img src="{{ profile.avatar.url|default:'/media/profile_pictures/cat.jpg' }}" alt="Avatar">
+                <img src="{{ profile.avatar.url|default:'/media/profile_pictures/tankist.png' }}" alt="Avatar">
                 <h5>{{ profile.full_name|default:profile.user.username }}</h5>
                 <p>@{{ profile.user.username }}</p>
                 <a href="{% url 'profile-retrieve' profile.id %}">Профиль</a>
@@ -99,11 +101,13 @@
 
             const friend_id = parseInt(this.dataset.friendid);
             const friend_name = this.dataset.friendname;
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-            if (confirm(`Добавить ${friend_name} в друзья?`)) {
+            if (confirm(`Добавить ${friend_name} в подписки?`)) {
                 fetch(`/api/profiles/friends/add/`, {
                     method: 'POST',
                     headers: {
+                        'X-CSRFToken': csrfToken,
                         'Content-Type': 'application/json',
                         'Authorization': 'Bearer ' + localStorage.getItem('access')
                     },

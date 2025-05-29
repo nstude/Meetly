@@ -141,6 +141,8 @@
 </style>
 
 <div class="profiles-container">
+    {% csrf_token %}
+
     <h2>Мои подписки</h2>
     <button onclick="history.back()" class="btn-back">
         ← Назад
@@ -160,7 +162,7 @@
             {% for friend in friends %}
                 <div class="friend-card">
                     <div class="friend-avatar">
-                        <img src="{{ friend.avatar|default:'/media/profile_pictures/cat.jpg' }}" alt="{{ friend.username }}">
+                        <img src="{{ friend.avatar|default:'/media/profile_pictures/tankist.png' }}" alt="{{ friend.username }}">
                     </div>
                     <div class="friend-info">
                         <h5>{{ friend.full_name|default:friend.username }}</h5>
@@ -195,15 +197,16 @@
 
     document.querySelectorAll('.remove-friend').forEach(btn => {
         btn.addEventListener('click', function() {
-
             const profile_id = parseInt(this.dataset.profileid);
             const friend_id = parseInt(this.dataset.friendid);
             const friend_name = this.dataset.friendname;
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
             if (confirm(`Удалить ${friend_name} из друзей?`)) {
                 fetch(`/api/profiles/${profile_id}/friends/remove/`, {
                     method: 'POST',
                     headers: {
+                        'X-CSRFToken': csrfToken,
                         'Content-Type': 'application/json',
                         'Authorization': 'Bearer ' + localStorage.getItem('access')
                     },

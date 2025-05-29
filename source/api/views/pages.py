@@ -1,9 +1,14 @@
+import json
 import logging
 
 from django.db.models import Q
-from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
+
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 
 from source.api.models import User, Profile, Group, Message
 
@@ -35,12 +40,12 @@ def change_password_page(request):
 
 
 # ---------------- Группа ----------------
-
+@login_required
 def groups_list(request):
     groups = Group.objects.filter(members=request.user)
     return render(request, 'groups/list.html', {'groups': groups})
 
-
+@login_required
 def group_detail(request, group_id):
     group = Group.objects.get(id=group_id)
     messages = Message.objects.filter(group=group).order_by('-timestamp')[:50]
@@ -49,17 +54,33 @@ def group_detail(request, group_id):
         'messages': messages
     })
 
+@login_required
+def leave_group(request, group_id):
+    group = get_object_or_404(Group, id=group_id)
+    
+    if request.method == 'POST':
+        if request.user in group.members.all() and request.user != group.author:
+            group.members.remove(request.user)
+            return redirect('groups_list')
+    
+    return redirect('group_detail', group_id=group.id)
+
 
 # ---------------- Сообщение ----------------
+@login_required
 @require_http_methods(["POST"])
-def send_message(request):
-    group = Group.objects.get(id=request.POST['group_id'])
-    Message.objects.create(
-        author=request.user,
-        group=group,
-        content=request.POST['content']
-    )
-    return redirect('group_detail', group_id=group.id)
+def send_message(request, group_id):
+    try:
+        data = json.loads(request.body)
+        group = Group.objects.get(id=group_id)
+        Message.objects.create(
+            author=request.user,
+            group=group,
+            content=data['content']
+        )
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
 # ---------------- Друзья ----------------
