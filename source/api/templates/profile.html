@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="profile-container">
+    <h2>Профиль пользователя</h2>
+
+    <div class="profile-info" id="profile-view">
+        {% if profile.photo %}
+            <img id="profile-photo" src="{{ profile.photo.url }}" alt="Фото профиля" style="max-width: 150px; border-radius: 8px;">
+        {% else %}
+            <p id="profile-photo-placeholder">Фото не загружено.</p>
+        {% endif %}
+
+        <p><strong>Имя пользователя:</strong> <span id="username-text">{{ profile.user.username }}</span></p>
+        <p><strong>Email:</strong> <span id="email-text">{{ profile.user.email }}</span></p>
+        <p><strong>Возраст:</strong> <span id="age-text">{{ profile.age|default:"Не указано" }}</span></p>
+        <p><strong>Пол:</strong> <span id="gender-text">{{ profile.gender|default:"Не указано" }}</span></p>
+        <p><strong>Дата рождения:</strong> <span id="birthdate-text">{{ profile.birth_date|date:"Y-m-d"|default:"Не указано" }}</span></p>
+
+        <button onclick="enableEdit()">Редактировать профиль</button>
+    </div>
+
+    <form id="edit-form" style="display:none;" onsubmit="submitEdit(event)">
+        <label>Имя пользователя:</label><br>
+        <input type="text" id="username-input" name="username" value="{{ profile.user.username }}"><br>
+
+        <label>Email:</label><br>
+        <input type="email" id="email-input" name="email" value="{{ profile.user.email }}"><br>
+
+        <label>Возраст:</label><br>
+        <input type="number" id="age-input" name="age" value="{{ profile.age }}"><br>
+
+        <label>Пол:</label><br>
+        <select id="gender-input" name="gender">
+            <option value="">Выбрать</option>
+            <option value="M" {% if profile.gender == 'M' %}selected{% endif %}>Мужской</option>
+            <option value="F" {% if profile.gender == 'F' %}selected{% endif %}>Женский</option>
+            <option value="O" {% if profile.gender == 'O' %}selected{% endif %}>Другое</option>
+        </select><br>
+
+        <label>Дата рождения:</label><br>
+        <input type="date" id="birthdate-input" name="birth_date" value="{{ profile.birth_date|date:'Y-m-d' }}"><br><br>
+
+        <button type="submit">Сохранить</button>
+        <button type="button" onclick="cancelEdit()">Отмена</button>
+    </form>
+
+    <hr>
+
+    <button id="uploadPhotoBtn">Загрузить фото</button>
+    <input type="file" id="photoInput" style="display:none" accept="image/*" />
+</div>
+
+<script>
+    function enableEdit() {
+        document.getElementById('profile-view').style.display = 'none';
+        document.getElementById('edit-form').style.display = 'block';
+    }
+
+    function cancelEdit() {
+        document.getElementById('edit-form').style.display = 'none';
+        document.getElementById('profile-view').style.display = 'block';
+    }
+
+    async function submitEdit(event) {
+        event.preventDefault();
+
+        const username = document.getElementById('username-input').value;
+        const email = document.getElementById('email-input').value;
+        const age = document.getElementById('age-input').value;
+        const gender = document.getElementById('gender-input').value;
+        const birthDate = document.getElementById('birthdate-input').value;
+
+        const accessToken = localStorage.getItem('access');
+        const profileId = "{{ profile.id }}";
+        const url = `/api/profiles/${profileId}/update/`;
+
+        const response = await fetch(url, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + accessToken
+            },
+            body: JSON.stringify({
+                user: {
+                    username: username,
+                    email: email
+                },
+                age: age ? parseInt(age) : null,
+                gender: gender || null,
+                birth_date: birthDate || null
+            })
+        });
+
+        if (response.ok) {
+            alert("Профиль обновлён!");
+            window.location.reload();
+        } else {
+            const data = await response.json();
+            alert("Ошибка: " + JSON.stringify(data));
+        }
+    }
+
+    // Загрузка фото
+    const uploadBtn = document.getElementById('uploadPhotoBtn');
+    const photoInput = document.getElementById('photoInput');
+    const profileId = "{{ profile.id }}";
+
+    uploadBtn.addEventListener('click', () => {
+        photoInput.click();
+    });
+
+    photoInput.addEventListener('change', async () => {
+        const file = photoInput.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('photo', file);
+
+        const accessToken = localStorage.getItem('access');
+        const url = `/api/profiles/${profileId}/update/`;
+
+        try {
+            const response = await fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': 'Bearer ' + accessToken
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                alert('Ошибка загрузки фото: ' + JSON.stringify(errorData));
+                return;
+            }
+
+            const data = await response.json();
+            alert('Фото успешно обновлено!');
+
+            // Обновляем фото на странице без перезагрузки
+            const img = document.getElementById('profile-photo');
+            const placeholder = document.getElementById('profile-photo-placeholder');
+            if (img) {
+                img.src = data.photo;
+            } else if (placeholder) {
+                placeholder.style.display = 'none';
+                const newImg = document.createElement('img');
+                newImg.id = 'profile-photo';
+                newImg.src = data.photo;
+                newImg.style.maxWidth = '150px';
+                newImg.style.borderRadius = '8px';
+                placeholder.parentNode.insertBefore(newImg, placeholder);
+            }
+
+        } catch (err) {
+            alert('Ошибка при загрузке фото');
+            console.error(err);
+        }
+    });
+</script>
+{% endblock %}

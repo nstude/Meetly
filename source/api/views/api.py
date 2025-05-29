@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
 from django_filters.rest_framework import DjangoFilterBackend
-
+from django.contrib.contenttypes.models import ContentType
 from rest_framework.exceptions import PermissionDenied
 from rest_framework import status, generics, permissions
 from rest_framework.views import APIView
@@ -385,6 +385,32 @@ class PostRetrieveAllView(generics.ListAPIView):
         allowed_users = [user] + [friend.user for friend in friends]
         return Post.objects.filter(author__in=allowed_users)
 
+class PostLikeAddRemoveView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        user = request.user
+        post = get_object_or_404(Post, pk=pk)
+        content_type = ContentType.objects.get_for_model(Post)
+        like_obj = Like.objects.filter(user=user, content_type=content_type, object_id=post.id).first()
+
+        if like_obj:
+            like_obj.delete()
+            liked = False
+        else:
+            Like.objects.create(user=user, content_type=content_type, object_id=post.id)
+            liked = True
+
+        likes_count = post.like_list.count()
+        liked_users = post.like_list.values_list('user__id', flat=True) 
+
+        return Response({
+            'id': post.id,
+            'liked': liked,
+            'likes': likes_count,
+            'liked_users': list(liked_users)  
+        }, status=status.HTTP_200_OK)
+
 class PostCreateView(generics.CreateAPIView):
     queryset = Post.objects.all()
     serializer_class = PostCreateSerializer
@@ -410,6 +436,11 @@ class PostDestroyView(generics.DestroyAPIView):
         if post.author != user:
             raise PermissionDenied("Вы не можете удалять чужие посты.")
         return post
+    
+    
+    
+#class PostCommentAddView(APIView):
+    
 
 
 
@@ -512,10 +543,10 @@ class GroupRemoveMembersView(APIView):
 class MessageRetrieveView(generics.RetrieveAPIView):
     queryset = Message.objects.all()
     serializer_class = MessageReadSerializer
-    def get_queryset(self): # для отображения сообщений из групп в которых состоит пользователь
-        user = self.request.user
-        groups = user.group_memberships.all()
-        return Message.objects.filter(group__in=groups)
+    # def get_queryset(self): # для отображения сообщений из групп в которых состоит пользователь
+    #     user = self.request.user
+    #     groups = user.group_memberships.all()
+    #     return Message.objects.filter(group__in=groups)
 
 class MessageRetrieveAllView(generics.ListAPIView):
     queryset = Message.objects.all()
@@ -523,10 +554,10 @@ class MessageRetrieveAllView(generics.ListAPIView):
     pagination_class = PageNumberPagination
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['author', 'group', 'post', 'timestamp']
-    def get_queryset(self):
-        user = self.request.user
-        groups = user.group_memberships.all()
-        return Message.objects.filter(group__in=groups)
+    # def get_queryset(self):
+    #     user = self.request.user
+    #     groups = user.group_memberships.all()
+    #     return Message.objects.filter(group__in=groups)
     
 
 class MessageCreateView(generics.CreateAPIView):

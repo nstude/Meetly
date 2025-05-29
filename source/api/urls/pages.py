@@ -19,6 +19,9 @@ from source.api.views.pages import (
     groups_list,
     group_detail,
 )
+from source.api.views.pages import (
+    profile_page
+)
 
 urlpatterns = [
     path('index/', index_page, name='index_page'),
@@ -31,6 +34,8 @@ urlpatterns = [
     path('groups/<int:group_id>/send/', send_message, name='send-message'),
 
     path('friends/', friends_list, name='friends_list'),
-    path('friends/add/', add_friend, name='add_friends')
+    path('friends/add/', add_friend, name='add_friends'),
+    
+    path('profile/', profile_page, name='profile_page')
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
