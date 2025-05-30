@@ -72,6 +72,13 @@ class GroupCreateSerializer(GroupBaseSerializer):
     class Meta(GroupBaseSerializer.Meta):
         fields = GroupBaseSerializer.Meta.fields + ['author', 'members']
 
+    def validate_name(self, value):
+        if Group.objects.filter(name=value).exists():
+            raise serializers.ValidationError(
+                "Группа с таким названием уже существует."
+            )
+        return value
+
     def validate(self, data):
         members = data.get('members', [])
         if len(members) < 1:
