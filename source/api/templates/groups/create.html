@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (response.ok) {
             responseDiv.innerHTML = '<span style="color: green;">Группа успешно создана!</span>';
         } else {
-            responseDiv.innerHTML = `<span style="color: red;">Ошибка: ${JSON.stringify(result)}</span>`;
+            responseDiv.innerHTML = `<span style="color: red;">Ошибка: ${JSON.stringify(result["name"])}</span>`;
         }
     });
 });
