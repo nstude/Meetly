@@ -49,8 +49,15 @@ def profile_page(request, profile_id):
 # ---------------- Группа ----------------
 @login_required
 def groups_list(request):
-    groups = Group.objects.filter(members=request.user)
+    groups = Group.objects.filter(
+        Q(members=request.user) | Q(author=request.user)
+    ).distinct()
     return render(request, 'groups/list.html', {'groups': groups})
+
+@login_required
+def groups_create(request):
+    friends = request.user.profile.friends.all()
+    return render(request, 'groups/create.html', {'friends': friends})
 
 @login_required
 def group_detail(request, group_id):
