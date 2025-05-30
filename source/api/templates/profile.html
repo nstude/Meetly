@@ -1,61 +1,310 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="profile-container">
-    <h2>Профиль пользователя</h2>
 
-    <div class="profile-info" id="profile-view">
-        {% if profile.photo %}
-            <img id="profile-photo" src="{{ profile.photo.url }}" alt="Фото профиля" style="max-width: 150px; border-radius: 8px;">
-        {% else %}
-            <p id="profile-photo-placeholder">Фото не загружено.</p>
-        {% endif %}
+<style>
+    body {
+        background-color: rgb(71, 115, 180); /* Синий фон всей страницы */
+        margin: 0;
+        font-family: Arial, sans-serif;
+    }
 
-        <p><strong>Имя пользователя:</strong> <span id="username-text">{{ profile.user.username }}</span></p>
-        <p><strong>Email:</strong> <span id="email-text">{{ profile.user.email }}</span></p>
-        <p><strong>Возраст:</strong> <span id="age-text">{{ profile.age|default:"Не указано" }}</span></p>
-        <p><strong>Пол:</strong> <span id="gender-text">{{ profile.gender|default:"Не указано" }}</span></p>
-        <p><strong>Дата рождения:</strong> <span id="birthdate-text">{{ profile.birth_date|date:"Y-m-d"|default:"Не указано" }}</span></p>
+    .profile-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start; /* Выравнивание сверху */
+        min-height: 100vh;
+        padding: 0; /* Убираем отступ сверху */
+    }
+
+    .profile-container {
+        background-color: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        max-width: 600px;
+        width: 100%;
+        text-align: center;
+        margin-top: 30px;
+    }
+
+    .profile-container form {
+        display: inline-block;
+        text-align: left;
+        margin: auto;
+        width: 100%;
+    }
+
+    .custom-button {
+        background-color: rgb(71, 115, 180); /* Синий фон */
+        color: white;
+        border: 2px solid rgb(71, 115, 180);
+        border-radius: 4px;
+        padding: 10px 16px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background-color 0.3s, border-color 0.3s;
+        width: 150px;
+        margin: 10px 5px 0 5px; /* Небольшие отступы только по бокам и сверху */
+    }
+
+    .custom-button:hover {
+        background-color: #0056b3;
+        border-color: #0056b3;
+    }
+
+    form input,
+    form select {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 12px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    h2 {
+        text-align: center;
+        color: rgb(71, 115, 180);
+    }
+
+    #profile-photo {
+        display: block;
+        margin: 0 auto 20px auto;
+    }
+
+    .custom-button.small {
+        font-size: 12px;
+        padding: 4px 10px;
+        margin-left: 10px;
+        margin-top: 0;
+    }
+
+    .field-section {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 15px;
+    }
+
+    .field-section p {
+        margin: 0;
+        flex: 1;
+    }
+
+    .field-controls {
+        margin-left: 10px;
+    }
+
+    .field-section .custom-button.small {
+        margin: 0;
+    }
+</style>
+
+<div class="profile-wrapper">
+    <div class="profile-container">
+        <h2>Профиль пользователя</h2>
+
+        <div class="profile-info" id="profile-view">
+            {% if profile.photo %}
+                <img id="profile-photo" src="{{ profile.photo.url }}" alt="Фото профиля" style="max-width: 250px; border-radius: 8px;">
+            {% else %}
+                <p id="profile-photo-placeholder">Фото не загружено.</p>
+            {% endif %}
+
+            <!-- Имя пользователя -->
+            <div class="field-section" id="username-section">
+                <p><strong>Имя пользователя:</strong>
+                    <span id="username-text">{{ profile.user.username }}</span>
+                    {% if request.user == profile.user %}
+                    
+                    <button class="custom-button small" onclick="editField('username')">Изменить</button>
+                    {% endif %}
+                </p>
+                <div id="username-edit" style="display:none;">
+                    <input type="text" id="username-input" value="{{ profile.user.username }}">
+                    <button class="custom-button small" onclick="saveField('username')">Сохранить</button>
+                    <button class="custom-button small" onclick="cancelField('username')">Отмена</button>
+                </div>
+            </div>
+
+            <!-- Email -->
+            <div class="field-section" id="email-section">
+                <p><strong>Email:</strong>
+                    <span id="email-text">{{ profile.user.email }}</span>
+                    {% if request.user == profile.user %}
+                    <button class="custom-button small" onclick="editField('email')">Изменить</button>
+                    {% endif %}
+                </p>
+                <div id="email-edit" style="display:none;">
+                    <input type="email" id="email-input" value="{{ profile.user.email }}">
+                    <button class="custom-button small" onclick="saveField('email')">Сохранить</button>
+                    <button class="custom-button small" onclick="cancelField('email')">Отмена</button>
+                </div>
+            </div>
+
+            <!-- Возраст -->
+            <div class="field-section" id="age-section">
+                <p><strong>Возраст:</strong>
+                    <span id="age-text">{{ profile.age|default:"Не указано" }}</span>
+                    {% if request.user == profile.user %}
+                    <button class="custom-button small" onclick="editField('age')">Изменить</button>
+                    {% endif %}
+                </p>
+                <div id="age-edit" style="display:none;">
+                    <input type="number" id="age-input" value="{{ profile.age }}">
+                    <button class="custom-button small" onclick="saveField('age')">Сохранить</button>
+                    <button class="custom-button small" onclick="cancelField('age')">Отмена</button>
+                </div>
+            </div>
+
+            <!-- Пол -->
+            <div class="field-section" id="gender-section">
+                <p><strong>Пол:</strong>
+                    <span id="gender-text">
+                        {% if profile.gender == "M" %}Мужской{% elif profile.gender == "F" %}Женский{% elif profile.gender == "O" %}Другое{% else %}Не указано{% endif %}
+                    </span>
+                    {% if request.user == profile.user %}
+                    <button class="custom-button small" onclick="editField('gender')">Изменить</button>
+                    {% endif %}
+                </p>
+                <div id="gender-edit" style="display:none;">
+                    <select id="gender-input">
+                        <option value="">Выбрать</option>
+                        <option value="M" {% if profile.gender == "M" %}selected{% endif %}>Мужской</option>
+                        <option value="F" {% if profile.gender == "F" %}selected{% endif %}>Женский</option>
+                        <option value="O" {% if profile.gender == "O" %}selected{% endif %}>Другое</option>
+                    </select>
+                    <button class="custom-button small" onclick="saveField('gender')">Сохранить</button>
+                    <button class="custom-button small" onclick="cancelField('gender')">Отмена</button>
+                </div>
+            </div>
+
+            <!-- Дата рождения -->
+            <div class="field-section" id="birth_date-section">
+                <p><strong>Дата рождения:</strong>
+                    <span id="birth_date-text">{{ profile.birth_date|date:"Y-m-d"|default:"Не указано" }}</span>
+                    {% if request.user == profile.user %}
+                    <button class="custom-button small" onclick="editField('birth_date')">Изменить</button>
+                    {% endif %}
+                </p>
+                <div id="birth_date-edit" style="display:none;">
+                    <input type="date" id="birth_date-input" value="{{ profile.birth_date|date:'Y-m-d' }}">
+                    <button class="custom-button small" onclick="saveField('birth_date')">Сохранить</button>
+                    <button class="custom-button small" onclick="cancelField('birth_date')">Отмена</button>
+                </div>
+            </div>
+
+            <div class="field-section" id="email-section">
+                <p><strong>Дата рождения:</strong>
+                    <span id="email-text">{{ profile.user.email }}</span>
+                    {% if request.user == profile.user %}
+                    <button class="custom-button small" onclick="editField('email')">Изменить</button>
+                    {% endif %}
+                </p>
+                <div id="email-edit" style="display:none;">
+                    <input type="email" id="email-input" value="{{ profile.user.email }}">
+                    <button class="custom-button small" onclick="saveField('email')">Сохранить</button>
+                    <button class="custom-button small" onclick="cancelField('email')">Отмена</button>
+                </div>
+            </div>
+        </div>
 
         {% if request.user == profile.user %}
-            <button onclick="enableEdit()">Редактировать профиль</button>
+        <form id="edit-form" style="display:none;" onsubmit="submitEdit(event)">
+            <label>Имя пользователя:</label>
+            <input type="text" id="username-input" name="username" value="{{ profile.user.username }}">
+
+            <label>Email:</label>
+            <input type="email" id="email-input" name="email" value="{{ profile.user.email }}">
+
+            <label>Возраст:</label>
+            <input type="number" id="age-input" name="age" value="{{ profile.age }}">
+
+            <label>Пол:</label>
+            <select id="gender-input" name="gender">
+                <option value="">Выбрать</option>
+                <option value="M" {% if profile.gender == 'M' %}selected{% endif %}>Мужской</option>
+                <option value="F" {% if profile.gender == 'F' %}selected{% endif %}>Женский</option>
+                <option value="O" {% if profile.gender == 'O' %}selected{% endif %}>Другое</option>
+            </select>
+
+            <label>Дата рождения:</label>
+            <input type="date" id="birthdate-input" name="birth_date" value="{{ profile.birth_date|date:'Y-m-d' }}">
+
+            <div style="text-align: center;">
+                <button type="submit" class="custom-button">Сохранить</button>
+                <button type="button" onclick="cancelEdit()" class="custom-button">Отмена</button>
+            </div>
+        </form>
+
+        <button class="custom-button" id="uploadPhotoBtn">Загрузить фото</button>
+        <input type="file" id="photoInput" style="display:none" accept="image/*" />
         {% endif %}
     </div>
-
-    {% if request.user == profile.user %}
-    <form id="edit-form" style="display:none;" onsubmit="submitEdit(event)">
-        <label>Имя пользователя:</label><br>
-        <input type="text" id="username-input" name="username" value="{{ profile.user.username }}"><br>
-
-        <label>Email:</label><br>
-        <input type="email" id="email-input" name="email" value="{{ profile.user.email }}"><br>
-
-        <label>Возраст:</label><br>
-        <input type="number" id="age-input" name="age" value="{{ profile.age }}"><br>
-
-        <label>Пол:</label><br>
-        <select id="gender-input" name="gender">
-            <option value="">Выбрать</option>
-            <option value="M" {% if profile.gender == 'M' %}selected{% endif %}>Мужской</option>
-            <option value="F" {% if profile.gender == 'F' %}selected{% endif %}>Женский</option>
-            <option value="O" {% if profile.gender == 'O' %}selected{% endif %}>Другое</option>
-        </select><br>
-
-        <label>Дата рождения:</label><br>
-        <input type="date" id="birthdate-input" name="birth_date" value="{{ profile.birth_date|date:'Y-m-d' }}"><br><br>
-
-        <button type="submit">Сохранить</button>
-        <button type="button" onclick="cancelEdit()">Отмена</button>
-    </form>
-
-    <hr>
-
-    <button id="uploadPhotoBtn">Загрузить фото</button>
-    <input type="file" id="photoInput" style="display:none" accept="image/*" />
-    {% endif %}
 </div>
 
 <script>
+
+
+    function editField(field) {
+        document.getElementById(`${field}-text`).style.display = 'none';
+        document.querySelector(`#${field}-section .custom-button`).style.display = 'none';
+        document.getElementById(`${field}-edit`).style.display = 'block';
+    }
+
+    function cancelField(field) {
+        document.getElementById(`${field}-text`).style.display = 'inline';
+        document.querySelector(`#${field}-section .custom-button`).style.display = 'inline-block';
+        document.getElementById(`${field}-edit`).style.display = 'none';
+    }
+
+    async function saveField(field) {
+        const accessToken = localStorage.getItem('access');
+        const profileId = "{{ profile.id }}";
+        const url = `/api/profiles/${profileId}/update/`;
+
+        let value;
+        if (field === 'gender') {
+            value = document.getElementById(`${field}-input`).value || null;
+        } else if (field === 'age') {
+            value = parseInt(document.getElementById(`${field}-input`).value) || null;
+        } else {
+            value = document.getElementById(`${field}-input`).value.trim();
+        }
+
+        // Подготовим тело запроса
+        let body = {};
+        if (field === 'username' || field === 'email') {
+            body['user'] = {};
+            body['user'][field] = value;
+        } else {
+            body[field] = value;
+        }
+
+        try {
+            const response = await fetch(url, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': 'Bearer ' + accessToken,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(body)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                alert("Ошибка: " + JSON.stringify(error));
+                return;
+            }
+
+            alert('Изменения сохранены');
+            window.location.reload();
+        } catch (err) {
+            console.error('Ошибка при обновлении:', err);
+            alert('Ошибка обновления поля');
+        }
+    }
+
     function enableEdit() {
         document.getElementById('profile-view').style.display = 'none';
         document.getElementById('edit-form').style.display = 'block';
@@ -106,7 +355,6 @@
     }
 
     {% if request.user == profile.user %}
-    // Загрузка фото
     const uploadBtn = document.getElementById('uploadPhotoBtn');
     const photoInput = document.getElementById('photoInput');
     const profileId = "{{ profile.id }}";
@@ -154,6 +402,8 @@
                 newImg.src = data.photo;
                 newImg.style.maxWidth = '150px';
                 newImg.style.borderRadius = '8px';
+                newImg.style.display = 'block';
+                newImg.style.margin = '0 auto';
                 placeholder.parentNode.insertBefore(newImg, placeholder);
             }
 
@@ -164,4 +414,5 @@
     });
     {% endif %}
 </script>
+
 {% endblock %}
