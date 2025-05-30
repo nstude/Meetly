@@ -9,6 +9,28 @@
         margin-bottom: 20px;
     }
 
+    .groups-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .groups-container .btn-create {
+        background-color: #2ecc71;
+        color: white;
+        font-size: 14px;
+        padding: 8px 18px;
+        border-radius: 5px;
+        transition: background-color 0.3s ease;
+        margin-bottom: 10px;
+        border: none;
+    }
+
+    .groups-container .btn-create:hover {
+        background-color:rgb(30, 124, 69);
+    }
+
     .groups-stats {
         display: flex;
         align-items: center;
@@ -112,9 +134,16 @@
 
 <div class="groups-container">
     <h2>Мои группы</h2>
-    <button onclick="window.location.href='{% url 'index_page' %}'" class="btn-back">
-        ← Назад
-    </button>
+
+    <div class="groups-header">
+        <button onclick="window.location.href='{% url 'index_page' %}'" class="btn-back">
+            ← Назад
+        </button>
+
+        <button onclick="window.location.href='{% url 'groups_create' %}'" class="btn-create">
+            Создать группу
+        </button>
+    </div>
 
     {% if error %}
         <div class="alert alert-danger">{{ error }}</div>

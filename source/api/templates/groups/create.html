@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<style>
+    .group-create-container {
+        max-width: 600px;
+        margin: 40px auto;
+        background-color: #ffffff;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .group-create-container h2 {
+        color: #3498db;
+        font-size: 28px;
+        text-align: center;
+        margin-bottom: 25px;
+    }
+
+    .group-create-container label {
+        font-weight: bold;
+        display: block;
+        margin-bottom: 5px;
+        color: #333;
+    }
+
+    .group-create-container input[type="text"],
+    .group-create-container select {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 20px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 14px;
+    }
+
+    .group-create-container select {
+        height: auto;
+    }
+
+    .group-create-container button[type="submit"] {
+        background-color: #2ecc71;
+        color: white;
+        font-size: 16px;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        display: block;
+        width: 100%;
+    }
+
+    .group-create-container button[type="submit"]:hover {
+        background-color: rgb(30, 124, 69);
+    }
+
+    #response {
+        text-align: center;
+        margin-top: 15px;
+        font-weight: bold;
+    }
+</style>
+
+
+<div class="group-create-container">
+    <h2>Создание группы</h2>
+
+    <form id="group-create-form">
+        <button onclick="history.back()" class="btn-back">
+            ← Назад
+        </button>
+
+        <label for="name">Название группы:</label><br>
+        <input type="text" id="name" name="name" required><br><br>
+
+        <label for="members">Выберите участников:</label><br>
+        <select id="members" name="members" multiple size="5">
+            {% for friend in friends %}
+                <option value="{{ friend.user.id }}">{{ friend.user.username }}</option>
+            {% endfor %}
+        </select><br><br>
+
+        <button type="submit">Создать</button>
+    </form>
+
+    <div id="response" style="margin-top: 20px;"></div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('group-create-form');
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const name = document.getElementById('name').value;
+        const membersSelect = document.getElementById('members');
+        const selectedMembers = Array.from(membersSelect.selectedOptions).map(option => option.value);
+
+        const accessToken = localStorage.getItem('access');
+        
+        const response = await fetch("{% url 'group-create' %}", {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + accessToken,
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                name: name,
+                members: selectedMembers
+            })
+        });
+
+        const result = await response.json();
+        const responseDiv = document.getElementById('response');
+
+        if (response.ok) {
+            responseDiv.innerHTML = '<span style="color: green;">Группа успешно создана!</span>';
+        } else {
+            responseDiv.innerHTML = `<span style="color: red;">Ошибка: ${JSON.stringify(result)}</span>`;
+        }
+    });
+});
+</script>
+
+{% endblock %}

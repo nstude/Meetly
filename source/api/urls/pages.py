@@ -14,6 +14,7 @@ from source.api.views.pages import (
 )
 from source.api.views.pages import (
     groups_list,
+    groups_create,
     group_detail,
     send_message,
     leave_group
@@ -31,6 +32,7 @@ urlpatterns = [
     path('profiles/<int:profile_id>/', profile_page, name='profile_page'),
 
     path('groups/', groups_list, name='groups_list'),
+    path('groups/create/', groups_create, name='groups_create'),
     path('groups/<int:group_id>/', group_detail, name='group_detail'),
     path('groups/<int:group_id>/send/', send_message, name='send_message'),
     path('groups/<int:group_id>/leave/', leave_group, name='leave_group'),
