@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .groups-container h2 {
+        color: #3498db;
+        font-size: 35px;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .groups-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .groups-container .btn-create {
+        background-color: #2ecc71;
+        color: white;
+        font-size: 14px;
+        padding: 8px 18px;
+        border-radius: 5px;
+        transition: background-color 0.3s ease;
+        margin-bottom: 10px;
+        border: none;
+    }
+
+    .groups-container .btn-create:hover {
+        background-color:rgb(30, 124, 69);
+    }
+
+    .groups-stats {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 25px;
+    }
+
+    .groups-stats .badge {
+        background-color: #3498db;
+        color: white;
+        font-size: 18px;
+        padding: 6px 10px;
+        border-radius: 5px;
+    }
+
+    .groups-stats a.btn {
+        background-color: #2ecc71;
+        color: white;
+        font-size: 14px;
+        padding: 8px 18px;
+        border-radius: 5px;
+        text-decoration: none;
+        transition: background-color 0.3s ease;
+    }
+
+    .groups-stats a.btn:hover {
+        background-color: rgb(30, 124, 69);
+    }
+
+    .group-card {
+        background: #fff;
+        border-radius: 10px;
+        padding: 25px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+        transition: transform 0.2s ease;
+        margin-bottom: 15px;
+    }
+
+    .group-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+    }
+
+    .group-info {
+        flex-grow: 1;
+    }
+
+    .group-info h5 {
+        margin-top: 0px;
+        margin-bottom: 0px;
+        color: #333;
+        font-weight: 600;
+        font-size: 20px;
+    }
+
+    .group-info h6 {
+        margin-top: 15px;
+        margin-bottom: 20px;
+        color: #333;
+        font-weight: 600;
+        font-size: 20px;
+    }
+
+    .group-info p {
+        margin: 0;
+        color: #777;
+        font-size: 14px;
+    }
+
+    .group-actions a {
+        font-size: 15px;
+        padding: 10px 15px;
+        border-radius: 5px;
+        text-decoration: none;
+        color: #3498db;
+        border: 2px solid #3498db;
+        transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .group-actions a:hover {
+        background-color: #3498db;
+        color: white;
+    }
+
+    .empty-groups {
+        text-align: center;
+        padding: 50px 20px;
+        background: #3498db;
+        border-radius: 10px;
+        color: white;
+    }
+
+    .empty-groups i {
+        font-size: 60px;
+        color: #2980b9;
+        margin-bottom: 20px;
+    }
+</style>
+
+<div class="groups-container">
+    <h2>Мои группы</h2>
+
+    <div class="groups-header">
+        <button onclick="window.location.href='{% url 'index_page' %}'" class="btn-back">
+            ← Назад
+        </button>
+
+        <button onclick="window.location.href='{% url 'groups_create' %}'" class="btn-create">
+            Создать группу
+        </button>
+    </div>
+
+    {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    <div class="groups-stats">
+        <span class="badge">Вы состоите в {{ groups|length }} группах</span>
+    </div>
+
+    {% if groups %}
+        <div class="groups-list">
+            {% for group in groups %}
+                <div class="group-card">
+                    <div class="group-info">
+                        <h5>{{ group.name }}</h5>
+                        <h6>Автор: {{ group.author.username }}</h6>
+                        <p>{{ group.description|truncatewords:20 }}</p>
+                        <div class="group-actions">
+                            <a href="{% url 'group_detail' group.id %}">Перейти в группу</a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-groups">
+            <i class="bi bi-people-fill"></i>
+            <p>Вы пока не состоите ни в одной группе</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

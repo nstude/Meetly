@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+
+{% block extra_head %}
+<style>
+
+    .login-page {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+    }
+
+    .login-container {
+        background-color: #fff;
+        border-radius: 10px;
+        padding: 35px;
+        text-align: center;
+        width: 350px;
+    }
+
+    .login-container h2 {
+        margin-bottom: 20px;
+        font-size: 30px;
+        color:rgb(19, 13, 25);
+    }
+
+    .login-container label {
+        display: block;
+        font-size: 18px;
+        text-align: left;
+    }
+
+    .login-container input {
+        width: 100%;
+        border-radius: 5px;
+        font-size: 18px;
+        box-sizing: border-box;
+        margin-bottom: 25px
+    }
+
+    .login-container .login-class button {
+        background-color: #287233;
+        color: #fff;
+        padding: 12px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 20px;
+        transition: background-color 0.3s ease;
+        width: 100%;
+        margin-bottom: 15px
+    }
+
+    .login-container .login-class button:hover {
+        background-color: #2D572C;
+    }
+
+    .login-container .register-class button {
+        background-color:rgb(71, 115, 180);
+        color: #fff;
+        padding: 12px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 20px;
+        transition: background-color 0.3s ease;
+        width: 100%;
+    }
+
+    .login-container .register-class button:hover {
+        background-color:rgb(40, 77, 114);
+    }
+
+    .error {
+        color: red;
+        font-size: 18px;
+        margin-bottom: 15px;
+    }
+
+
+    .login-container .register-class button {
+        background-color: #b22222; /* темно-красный */
+        color: #fff;
+        padding: 12px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 20px;
+        transition: background-color 0.3s ease;
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    .login-container .register-class button:hover {
+        background-color: #8b0000; /* еще темнее при наведении */
+    }
+
+</style>
+
+<div class="login-page">
+    <div class="login-container">
+        <h2>Войти</h2>
+        <div class="error" id="error"></div>
+        <form id="login-form">
+            {% csrf_token %}
+            <label for="username">Имя пользователя:</label>
+            <input type="text" id="username" name="username" required>
+
+            <label for="password">Пароль:</label>
+            <input type="password" id="password" name="password" required>
+
+            <div class="login-class">
+                <button type="submit">Войти</button>
+            </div>
+
+            <div class="register-class">
+                <button type="button" onclick="window.location.href='/page/register/'">Регистрация</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.getElementById('login-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        try {
+            const response = await fetch('/auth/login/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                localStorage.setItem('access', data.access);
+                localStorage.setItem('refresh', data.refresh);
+                localStorage.setItem('username', username);
+
+                window.location.href = '{% url "index_page" %}?nocache=' + new Date().getTime();
+            } else {
+                document.getElementById('error').textContent =
+                    data.detail || 'Имя пользователя или пароль неверны';
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            document.getElementById('error').textContent = 'Ошибка соединения с сервером';
+        }
+    });
+</script>
+{% endblock %}

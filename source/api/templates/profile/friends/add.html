@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .profiles-container h2 {
+        text-align: center;
+        color: #3498db;
+        margin-bottom: 30px;
+        font-size: 30px;
+    }
+
+    .profile-card {
+        background-color: #fff;
+        border-radius: 10px;
+        padding: 15px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        text-align: center;
+    }
+
+    .profile-card img {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-bottom: 10px;
+    }
+
+    .profile-card h5 {
+        margin: 10px 0 5px;
+        color: #333;
+    }
+
+    .profile-card p {
+        color: #666;
+        margin-bottom: 15px;
+    }
+
+    .profile-card a,
+    .profile-card button {
+        display: block;
+        width: 100%;
+        padding: 10px;
+        margin-top: 5px;
+        border: none;
+        border-radius: 5px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        text-decoration: none;
+        box-sizing: border-box;
+    }
+
+    .profile-card a {
+        background-color: #3498db;
+        color: white;
+    }
+
+    .profile-card a:hover {
+        background-color: #2980b9;
+    }
+
+    .profile-card button {
+        background-color: #2ecc71;
+        color: white;
+    }
+
+    .profile-card button:hover {
+        background-color: #27ae60;
+    }
+
+</style>
+
+<div class="profiles-container">
+    {% csrf_token %}
+
+    <h2>Подписаться на пользователя</h2>
+    <button onclick="history.back()" class="btn-back">
+        ← Назад
+    </button>
+
+    <div class="profile-grid">
+        {% for profile in profiles %}
+            <div class="profile-card">
+                <img src="{{ profile.avatar.url|default:'/media/profile_pictures/tankist.png' }}" alt="Avatar">
+                <h5>{{ profile.full_name|default:profile.user.username }}</h5>
+                <p>@{{ profile.user.username }}</p>
+                <a href="{% url 'profile_page' profile.id %}">Профиль</a>
+                <button class="btn-outline-danger add-friend"
+                    data-friendid="{{ profile.id }} "
+                    data-friendname="{{ profile.user.username }} ">
+                    Подписаться
+                </button>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    document.querySelectorAll('.add-friend').forEach(btn => {
+        btn.addEventListener('click', function() {
+
+            const friend_id = parseInt(this.dataset.friendid);
+            const friend_name = this.dataset.friendname;
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            if (confirm(`Добавить ${friend_name} в подписки?`)) {
+                fetch(`/api/profiles/friends/add/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + localStorage.getItem('access')
+                    },
+                    body: JSON.stringify({
+                        friends_id: [friend_id]
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status) {
+                        location.reload();
+                    }                  
+                    else {
+                        alert("Произошла ошибка при добавлении");
+                    }
+                })
+                .catch(error => {
+                    console.error("Logout error:", error);
+                    alert("Произошла ошибка при добавлении");
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -72,6 +72,13 @@ class GroupCreateSerializer(GroupBaseSerializer):
     class Meta(GroupBaseSerializer.Meta):
         fields = GroupBaseSerializer.Meta.fields + ['author', 'members']
 
+    def validate_name(self, value):
+        if Group.objects.filter(name=value).exists():
+            raise serializers.ValidationError(
+                "Группа с таким названием уже существует."
+            )
+        return value
+
     def validate(self, data):
         members = data.get('members', [])
         if len(members) < 1:
@@ -110,7 +117,6 @@ class GroupUpdateSerializer(GroupBaseSerializer):
 
 
 class GroupAddMemberSerializer(serializers.Serializer):
-    group_id = serializers.IntegerField(required=True)
     members_id = serializers.PrimaryKeyRelatedField(
         many=True,
         queryset=User.objects.all(),
@@ -118,10 +124,9 @@ class GroupAddMemberSerializer(serializers.Serializer):
     )
 
     def validate(self, data):
-        try:
-            group = Group.objects.get(id=data['group_id'])
-        except Group.DoesNotExist:
-            raise ValidationError("Группа не найдена")
+        group = self.context.get('group')
+        if not group:
+            raise ValidationError("Группа не указана в контексте")
 
         current_user = self.context['request'].user
         if not (current_user == group.author or current_user in group.members.all()):
@@ -130,17 +135,20 @@ class GroupAddMemberSerializer(serializers.Serializer):
         existing_members = group.members.filter(id__in=[user.id for user in data['members_id']])
         if existing_members.exists():
             raise ValidationError(
-                f"Некоторые пользователи уже состоят в группе: {list(existing_members.values_list('id', flat=True))}"
+                f"Некоторые пользователи уже состоят в группе: {list(existing_members.values_list('username', flat=True))}"
             )
 
-        data['group'] = group
         return data
 
     def save(self, **kwargs):
-        group = self.validated_data['group']
+        group = self.context['group']
         members_to_add = self.validated_data['members_id']
         group.members.add(*members_to_add)
-        return group
+        return {
+            'group_id': group.id,
+            'added_members': [user.id for user in members_to_add],
+            'total_members': group.members.count()
+        }
 
 # TO DO Подумать над реализацией
 class GroupRemoveMemberSerializer(serializers.Serializer):
@@ -209,6 +217,20 @@ class GroupRemoveMemberSerializer(serializers.Serializer):
             'group_id': self.group.id,
             'removed_members': [user.id for user in users_to_remove],
             'remaining_members_count': self.group.members.count()
+        }
+    
+    def leave_group(self):
+        if not self.group:
+            raise ValidationError("Группа не указана")
+            
+        if self.current_user not in self.group.members.all():
+            raise ValidationError("Вы не состоите в этой группе")
+            
+        self.group.members.remove(self.current_user)
+        return {
+            'group_id': self.group.id,
+            'user_id': self.current_user.id,
+            'action': 'left'
         }
 
 

@@ -1,0 +1,191 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
+/*Цвета:
+Фон:#08457E*/
+
+
+
+/*------- ШРИФТ -------*/
+/*.montserrat-font {
+  font-family: "Montserrat", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 200;
+  font-style: normal;
+}
+
+
+* {
+    font-family: montserrat-font;
+}*/
+
+/*------- ФОН -------*/
+body {
+    background-color:  #4285B4;
+
+    font-family: "Montserrat", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 500;
+    font-style: normal;
+}
+
+
+/*------- НАВИГАЦИЯ -------*/
+.main-nav {
+    background-color: #4267B2;
+    color: white;
+    padding: 15px 0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+}
+
+.nav-links, .nav-auth {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.nav-links a, .nav-auth a {
+    color: white;
+    text-decoration: none;
+    font-weight: 500;
+    transition: opacity 0.3s;
+}
+
+.nav-links a:hover, .nav-auth a:hover {
+    opacity: 0.8;
+}
+
+.logout-btn {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 14px;
+}
+.logout-btn:hover {
+    background-color:rgb(151, 46, 38);
+}
+
+.register-btn {
+    background-color: #4CAF50;
+    padding: 8px 16px;
+    border-radius: 4px;
+}
+
+.content-wrapper {
+    max-width: 1600px;
+    max-height: 1600px;
+    margin: 20px auto;
+    padding: 0 20px;
+}
+
+
+
+
+/* -------- ПРОФИЛИ -------- */
+/* -------- СЕТКА ПРОФИЛЕЙ -------- */
+.profile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+/* -------- КОНТЕЙНЕР ПРОФИЛЕЙ -------- */
+.profiles-container {
+    max-width: 1000px;
+    margin: 40px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+/* -------- КОНТЕЙНЕР ГРУПП -------- */
+.groups-container {
+    max-width: 1000px;
+    margin: 40px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+
+
+/*------- КНОПКИ -------*/
+/*------- КНОПКА НАЗАД -------*/
+.btn-back {
+    background-color: #2ecc71;
+    color: white;
+    font-size: 14px;
+    padding: 8px 18px;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+    margin-bottom: 10px;
+    border: none;
+}
+
+.btn-back:hover {
+    background-color:rgb(30, 124, 69);
+}
+
+
+/*------- СБРОС СТИЛЯ ШРИФТА ДЛЯ КНОПОК -------*/
+button {
+    font-family: inherit;
+}
+
+
+/* -------- ФОРМЫ ВВОДА -------- */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea,
+select {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0 20px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 14px;
+    font-family: "Montserrat", sans-serif;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    border-color: #3498db;
+    outline: none;
+}
+
+
+
+/* -------- ФУТЕР -------- */
+footer {
+    text-align: center;
+    padding: 20px 0;
+    font-size: 14px;
+    color: #aaa;
+}
+
+
+
+/* -------- АДАПТИВНОСТЬ -------- */
+@media (max-width: 768px) {
+    .profile-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .container {
+        width: 95%;
+    }
+}

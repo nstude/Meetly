@@ -34,12 +34,28 @@ class PostContentWithAuthorReadSerializer(PostBaseSerializer):
 
 
 class PostReadSerializer(PostContentWithAuthorReadSerializer):
+    author = serializers.SerializerMethodField()
     comments = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    like_list = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    likes = serializers.IntegerField(read_only=True, source='likes.count')
+    likes = serializers.IntegerField(read_only=True, source='like_list.count')  
+    user_liked = serializers.SerializerMethodField()  
+    liked_users_ids = serializers.SerializerMethodField()  
 
     class Meta(PostContentWithAuthorReadSerializer.Meta):
-        fields = PostContentWithAuthorReadSerializer.Meta.fields + ['comments', 'like_list', 'likes']
+        fields = PostContentWithAuthorReadSerializer.Meta.fields + ['comments', 'likes', 'user_liked', 'liked_users_ids']  
+
+    def get_author(self, obj):
+        return {
+            'id': obj.author.id,
+            'username': obj.author.username
+        }
+
+    def get_user_liked(self, obj):
+        user = self.context['request'].user
+        return obj.like_list.filter(user=user).exists()  
+
+    def get_liked_users_ids(self, obj):
+        liked_users = obj.like_list.values_list('user__id', flat=True)  
+        return liked_users
 
 
 class PostCreateSerializer(PostBaseSerializer):
@@ -86,3 +102,5 @@ class PostDeleteSerializer(PostBaseSerializer):
         post = Post.objects.get(id=self.validated_data['id'])
         post.delete()
         return
+    
+    

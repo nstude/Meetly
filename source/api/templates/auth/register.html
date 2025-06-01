@@ -1,0 +1,122 @@
+
+<style>
+    body {
+        background-color: rgb(71, 115, 180); /* синий фон */
+    }
+    .register-container {
+        max-width: 500px;
+        margin: 40px auto;
+        padding: 30px;
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        font-family: Arial, sans-serif;
+    }
+
+    .register-container h1 {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .register-container label {
+        font-weight: bold;
+    }
+
+    .register-container input, .register-container select {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 20px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        font-size: 16px;
+    }
+
+    .register-container button {
+        width: 100%;
+        padding: 15px;
+        font-size: 18px;
+        background-color: #287233;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    .register-container button:hover {
+        background-color: #2D572C;
+    }
+</style>
+
+<div class="register-container">
+    <h1>Регистрация</h1>
+    <form id="register-form">
+        {% csrf_token %}
+
+        <label for="username">Имя пользователя:</label>
+        <input type="text" id="username" required>
+
+        <label for="email">Почта:</label>
+        <input type="email" id="email" required>
+
+        <label for="password">Пароль:</label>
+        <input type="password" id="password" required>
+
+        <label for="age">Возраст:</label>
+        <input type="number" id="age" min="0" required>
+
+        <label for="gender">Пол:</label>
+        <select id="gender" required>
+            <option value="m">Мужской</option>
+            <option value="f">Женский</option>
+        </select>
+
+        <button type="submit">Зарегистрироваться</button>
+    </form>
+</div>
+
+<script>
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+
+    document.getElementById('register-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const data = {
+            age: parseInt(document.getElementById('age').value),
+            gender: document.getElementById('gender').value,
+            user: {
+                username: document.getElementById('username').value,
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value
+            }
+        };
+
+        fetch('/auth/register/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            }
+            return response.json().then(err => { throw err; });
+        })
+        .then(data => {
+            alert(data.message || 'Успешно зарегистрировано!');
+            window.location.href = "{% url 'login_page' %}";
+        })
+        .catch(error => {
+            alert('Ошибка: ' + (error.error || 'Неизвестная ошибка'));
+            console.error(error);
+        });
+    });
+</script>
+

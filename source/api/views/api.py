@@ -1,27 +1,18 @@
-from django.db import transaction
 from django.db.models import Q
 from django.http import JsonResponse
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib import messages
-from django.contrib.auth import login, update_session_auth_hash
-from django.contrib.auth.forms import AuthenticationForm
+from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
 from django_filters.rest_framework import DjangoFilterBackend
+from django.contrib.contenttypes.models import ContentType
 from rest_framework.exceptions import PermissionDenied
 from rest_framework import status, generics, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
-from rest_framework_simplejwt.tokens import RefreshToken
-from django.views import View
-from rest_framework.decorators import permission_classes
-import json
-import logging
-from rest_framework.decorators import api_view
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
+
 from source.api.models import User, Profile, Post, Group, Message, Like
+from source.api.serializers.auth_serializers import ChangePasswordSerializer
 from source.api.serializers.user_serializers import (
     UserReadSerializer,
     UserCreateSerializer,
@@ -201,16 +192,39 @@ class UserPostsRetrieveView(generics.ListAPIView):
     def get_queryset(self):
         user_id = self.kwargs['user_id']
         return Post.objects.filter(author__id=user_id)
+
+# ---------------- Смена пароля ----------------
+class ChangePasswordView(generics.UpdateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ChangePasswordSerializer
     
+    def update(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        user = request.user
+        if not user.check_password(serializer.data['old_password']):
+            return Response(
+                {"error": "Неверный старый пароль"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        """if len(serializer.data['new_password']) < 8:
+            return JsonResponse({'detail': 'Пароль должен быть не менее 8 символов.'}, status=400)"""
+        
+        user.set_password(serializer.data['new_password'])
+        user.save()
+        
+        return Response({"message": "Пароль успешно обновлён"})
 
 
 # ---------------- Профиль пользователя  ----------------
 def profile_delete_fields(data):
-    data.pop('id', None)
+    """data.pop('id', None)
     data.pop('age', None)
     data.pop('birth_date', None)
     data['user'].pop('id', None)
-    data['user'].pop('email', None)
+    data['user'].pop('email', None)"""
     
     return data
 
@@ -324,20 +338,23 @@ class ProfileAddFriendsView(generics.GenericAPIView):
 
 class ProfileRemoveFriendsView(generics.GenericAPIView):
     serializer_class = ProfileRemoveFriendsSerializer
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, profile_id):
         profile = self.get_object()
+
         serializer = ProfileRemoveFriendsSerializer(
             data=request.data,
             context={'profile': profile}
         )
         serializer.is_valid(raise_exception=True)
-
         profile.friends.remove(*serializer.validated_data['friends'])
+
         return Response(
             {"status": "Друзья успешно удалены"},
             status=status.HTTP_200_OK
         )
+    
 
     def get_object(self):
         return Profile.objects.get(pk=self.kwargs['profile_id'])
@@ -368,6 +385,32 @@ class PostRetrieveAllView(generics.ListAPIView):
         allowed_users = [user] + [friend.user for friend in friends]
         return Post.objects.filter(author__in=allowed_users)
 
+class PostLikeAddRemoveView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        user = request.user
+        post = get_object_or_404(Post, pk=pk)
+        content_type = ContentType.objects.get_for_model(Post)
+        like_obj = Like.objects.filter(user=user, content_type=content_type, object_id=post.id).first()
+
+        if like_obj:
+            like_obj.delete()
+            liked = False
+        else:
+            Like.objects.create(user=user, content_type=content_type, object_id=post.id)
+            liked = True
+
+        likes_count = post.like_list.count()
+        liked_users = post.like_list.values_list('user__id', flat=True) 
+
+        return Response({
+            'id': post.id,
+            'liked': liked,
+            'likes': likes_count,
+            'liked_users': list(liked_users)  
+        }, status=status.HTTP_200_OK)
+
 class PostCreateView(generics.CreateAPIView):
     queryset = Post.objects.all()
     serializer_class = PostCreateSerializer
@@ -393,6 +436,11 @@ class PostDestroyView(generics.DestroyAPIView):
         if post.author != user:
             raise PermissionDenied("Вы не можете удалять чужие посты.")
         return post
+    
+    
+    
+#class PostCommentAddView(APIView):
+    
 
 
 
@@ -449,22 +497,28 @@ class GroupDestroyView(generics.DestroyAPIView):
 
 
 # TO DO Возможно стоит переделать через метод PUT/PATCH
-class GroupAddMembersView(generics.GenericAPIView):
-    serializer_class = GroupAddMemberSerializer
-
-    def post(self, request, *args, **kwargs):
-        group = self.get_object()
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        group.members.add(*serializer.validated_data['members_id'])
-        return Response(
-            {"status": "Пользователи успешно добавлены"},
-            status=status.HTTP_200_OK
+class GroupAddMembersView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, group_id):
+        group = get_object_or_404(Group, id=group_id)
+        serializer = GroupAddMemberSerializer(
+            data=request.data,
+            context={
+                'request': request,
+                'group': group
+            }
         )
-
-    def get_object(self):
-        return Group.objects.get(pk=self.kwargs['group_id'])
+        
+        try:
+            serializer.is_valid(raise_exception=True)
+            result = serializer.save()
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {'detail': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 class GroupRemoveMembersView(APIView):
@@ -495,10 +549,10 @@ class GroupRemoveMembersView(APIView):
 class MessageRetrieveView(generics.RetrieveAPIView):
     queryset = Message.objects.all()
     serializer_class = MessageReadSerializer
-    def get_queryset(self): # для отображения сообщений из групп в которых состоит пользователь
-        user = self.request.user
-        groups = user.group_memberships.all()
-        return Message.objects.filter(group__in=groups)
+    # def get_queryset(self): # для отображения сообщений из групп в которых состоит пользователь
+    #     user = self.request.user
+    #     groups = user.group_memberships.all()
+    #     return Message.objects.filter(group__in=groups)
 
 class MessageRetrieveAllView(generics.ListAPIView):
     queryset = Message.objects.all()
@@ -506,10 +560,10 @@ class MessageRetrieveAllView(generics.ListAPIView):
     pagination_class = PageNumberPagination
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['author', 'group', 'post', 'timestamp']
-    def get_queryset(self):
-        user = self.request.user
-        groups = user.group_memberships.all()
-        return Message.objects.filter(group__in=groups)
+    # def get_queryset(self):
+    #     user = self.request.user
+    #     groups = user.group_memberships.all()
+    #     return Message.objects.filter(group__in=groups)
     
 
 class MessageCreateView(generics.CreateAPIView):
@@ -569,190 +623,3 @@ class LikeDestroyView(generics.DestroyAPIView):
             raise PermissionDenied("Вы не можете удалять чужие лайки.")
         return like
 
-
-
-# ---------------- Регистрация ----------------
-
-class RegisterView(generics.CreateAPIView):
-    serializer_class = ProfileCreateSerializer
-    
-    @transaction.atomic
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        try:
-            profile = serializer.save()
-            
-            return Response(
-                {
-                    "status": "success",
-                    "user_id": profile.user.id,
-                    "profile_id": profile.id,
-                    "message": "Регистрация прошла успешно"
-                },
-                status=status.HTTP_201_CREATED
-            )
-
-        except Exception as e:
-            if "unique constraint" in str(e).lower():
-                return Response(
-                    {"error": "Пользователь с такими данными уже существует"},
-                    # TO DO Добавить файл с ошибками
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-
-# ---------------- Смена пароля ----------------
-# TO DO Возможно стоит добавить сериализатор для изменения пароля
-# Если добавлять, то явно в new_password задать min_length=8 и max_length=128
-class ChangePasswordView(APIView):
-    permission_classes = [IsAuthenticated]  
-
-    def post(self, request):
-        user = request.user
-        old_password = request.data.get('old_password')
-        new_password = request.data.get('new_password')
-
-
-        if not user.check_password(old_password):
-            return JsonResponse({'detail': 'Неверный старый пароль.'}, status=400)
-
-        if len(new_password) < 8:
-            return JsonResponse({'detail': 'Пароль должен быть не менее 8 символов.'}, status=400)
-
-        user.set_password(new_password)
-        user.save()
-        update_session_auth_hash(request, user)
-        return JsonResponse({'success': True})
-
-
-# ---------------- Логин ----------------
-# TO DO добавить сериализатор для логина
-# Поменять названия
-logger = logging.getLogger(__name__)
-
-@method_decorator(csrf_exempt, name='dispatch')
-class LoginView(View):
-    template_name = 'meetly/login.html'  # Путь к вашему шаблону login.html
-
-    def get(self, request):
-        """
-        Обрабатывает GET-запросы для отображения формы входа.
-        """
-        form = AuthenticationForm()
-        print("GET request received for login page.")  # Выводим информацию в терминал
-        return render(request, self.template_name, {'form': form})
-
-    def post(self, request):
-        """
-        Обрабатывает POST-запросы для аутентификации пользователя и выдачи JWT.
-        """
-        print(f"Raw request body: {request.body}") # Добавьте это
-        try:
-            data = json.loads(request.body)
-            username = data.get('username')
-            password = data.get('password')
-            print(f"POST request received: username={username}, password={password[:3]}***")  # Логируем начало пароля (безопасность)
-        except json.JSONDecodeError:
-            print("Invalid JSON data received.")
-            return JsonResponse({'error': "Invalid JSON data."}, status=400)
-
-        form = AuthenticationForm(request, data={'username': username, 'password': password})
-        if form.is_valid():
-            user = form.get_user()
-            if user is not None:
-                refresh = RefreshToken.for_user(user)
-                access_token = str(refresh.access_token)
-                refresh_token = str(refresh)
-
-                # Логируем успешную аутентификацию в терминал
-                print(f"User '{user.username}' logged in successfully. Access token (truncated): {access_token[:20]}..., Refresh token (truncated): {refresh_token[:20]}...")
-
-                return JsonResponse({
-                    'access_token': access_token,
-                    'refresh_token': refresh_token,
-                    'username': user.username,
-                })
-            else:
-                print("AuthenticationForm is valid, but form.get_user() returned None.")
-                return JsonResponse({'error': "AuthenticationForm is valid, but no user found."}, status=400)
-        else:
-            print(f"Invalid login attempt. Form errors: {form.errors}")
-            return JsonResponse({'error': "Неверное имя пользователя или пароль."}, status=400)
-
-
-# ---------------- Страницы ----------------
-# TO DO Добавить файл бекенда для аутентификации
-def index(request):
-    return render(request, 'meetly/index.html')
-
-
-def change_password_page(request):
-    return render(request, 'meetly/change-password.html')
-
-
-def friends_page(request):
-    profile = request.user.profile 
-    friends_profiles = profile.friends.all() 
-    friends = User.objects.filter(profile__in=friends_profiles)  
-    others = User.objects.exclude(profile__in=friends_profiles).exclude(id=request.user.id)  
-    context = {
-        'friends': friends,
-        'others': others,
-    }
-    return render(request, 'friends.html', context)
-
-
-class AddFriendView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        user_id = request.data.get('profile_id')
-        if not user_id:
-            return Response({'error': 'ID профиля обязателен'}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            user = User.objects.get(id=user_id)
-            friend_profile = user.profile
-            profile = request.user.profile
-            if friend_profile in profile.friends.all():
-                return Response({'error': 'Этот пользователь уже в списке ваших друзей.'}, status=status.HTTP_400_BAD_REQUEST)
-            profile.friends.add(friend_profile)
-
-            return Response({'success': True}, status=status.HTTP_200_OK)
-
-        except Profile.DoesNotExist:
-            return Response({'error': 'Профиль не найден'}, status=status.HTTP_404_NOT_FOUND)
-
-        except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.exception("Ошибка при добавлении в друзья")
-            return Response({'error': 'Произошла ошибка на сервере'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)  
-        
-
-
-class LogoutView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        try:
-            refresh_token = request.data["refresh"]
-            token = RefreshToken(refresh_token)
-            token.blacklist()  
-            return Response({"detail": "Logged out successfully."}, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({"error": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
-        
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def current_user(request):
-    return Response({
-        'username': request.user.username,
-        'email': request.user.email
-    })

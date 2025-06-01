@@ -1,0 +1,488 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+    .group-container {
+        max-width: 90%;
+        max-height: 1300px;
+        margin: 40px auto;
+        padding: 50px;
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .row {
+        display: flex;
+        gap: 30px;
+        margin: 0 -15px;
+        align-items: flex-start;
+    }
+
+    .col-md-8 {
+        flex: 0 0 65%;
+        height: 100%;
+        background-color:rgb(106, 148, 179);
+        border-radius: 8px;
+        padding: 0 15px;
+    }
+
+    .col-md-4 {
+        flex: 0 0 30%;
+        height: 100%;
+        background-color:rgb(106, 148, 179);
+        border-radius: 8px;
+        padding: 30px;
+        margin-right: 40px
+    }
+
+    .col-md-4 h3 {
+        margin-top: 20px;
+        margin-bottom: 15px;
+        color: #34495e;
+    }
+
+
+
+    h1 {
+        font-size: 32px;
+        color: #2c3e50;
+        margin-bottom: 10px;
+    }
+
+    p {
+        color: black;
+        margin-bottom: 25px;
+    }
+
+
+
+    .messages-container {
+        flex-grow: 1; /* Растягиваем на всю доступную высоту */
+        max-height: 750px;
+        overflow-y: auto;
+        margin-bottom: 30px;
+        padding-right: 10px;
+    }
+
+
+
+    .card {
+        background-color: #f8f9fa;
+        border: 1px solid #e1e4e8;
+        border-radius: 8px;
+        margin-bottom: 5px;
+    }
+
+    .card-body {
+        margin-left: 15px;
+        margin-bottom: 5px;
+        padding: 0px;
+    }
+
+    .card-title {
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: #34495e;
+    }
+
+    .card-text {
+        margin-bottom: 15px;
+    }
+
+
+
+    .text-muted {
+        font-size: 12px;
+        color: #aaa;
+    }
+
+
+
+    form textarea.form-control {
+        width: 100%;
+        min-height: 15%;
+        resize: vertical;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        padding: 10px;
+        margin-bottom: 10px;
+        box-sizing: border-box;
+    }
+
+
+
+    form .btn {
+        background-color: #2ecc71;
+        border: none;
+        color: white;
+        padding: 10px 20px;
+        font-size: 14px;
+        border-radius: 5px;
+        transition: background-color 0.3s ease;
+        margin-bottom: 20px;
+    }
+
+    form .btn:hover {
+        background-color: #27ae60;
+    }
+
+
+
+    .member-list {
+        border-radius: 5px;
+        padding: 20px;
+        height: 100%;
+    }
+    
+    .list-group {
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .list-group-item {
+        color: #333;
+        padding: 10px 15px;
+    }
+    
+    .list-group-item:not(:last-child) {
+        border-bottom: none;
+    }
+
+
+    .member-card {
+        background: #fff;
+        border-radius: 10px;
+        padding: 15px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+        transition: transform 0.2s ease;
+        margin-bottom: 5px;
+    }
+
+    .member-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+    }
+
+    .member-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        overflow: hidden;
+        margin-right: 15px;
+        flex-shrink: 0;
+    }
+
+    .member-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .member-info {
+        flex-grow: 1;
+    }
+
+    .member-info h5 {
+        margin: 0 0 6px;
+        color: #333;
+        font-weight: 600;
+    }
+
+    .member-info p {
+        margin: 0;
+        color: #777;
+        font-size: 14px;
+    }
+
+    .member-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .member-actions a,
+    .member-actions button {
+        font-size: 13px;
+        padding: 6px 12px;
+        border-radius: 5px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        text-decoration: none;
+        user-select: none;
+    }
+
+    .member-actions a.btn-outline-primary {
+        background-color: transparent;
+        color: #3498db;
+        border-color: #3498db;
+    }
+
+    .member-actions a.btn-outline-primary:hover {
+        background-color: #3498db;
+        color: white;
+        border-color: #2980b9;
+    }
+
+    .member-actions .btn-add {
+        background-color: #2ecc71;
+        color: white;
+        font-size: 14px;
+        padding: 8px 18px;
+        border-radius: 5px;
+        transition: background-color 0.3s ease;
+        border: none;
+    }
+
+    .member-actions .btn-add:hover {
+        background-color:rgb(30, 124, 69);
+    }
+
+    .member-actions button.btn-outline-danger {
+        background-color: transparent;
+        color: #e74c3c;
+        border-color: #e74c3c;
+    }
+
+    .member-actions button.btn-outline-danger:hover {
+        background-color: #e74c3c;
+        color: white;
+        border-color: #c0392b;
+    }
+
+    @media (max-width: 992px) {
+        .row {
+            flex-direction: column;
+        }
+        
+        .col-md-8,
+        .col-md-4 {
+            width: 100%;
+            flex: 0 0 100%;
+        }
+    }
+</style>
+
+<div class="group-container">
+    <button onclick="window.location.href='{% url 'groups_list' %}'" class="btn-back">
+        ← Назад
+    </button>
+
+    <div class="row">
+        <div class="col-md-8">
+            <h1>{{ group.name }}</h1>
+            <p>Создатель: {{ group.author.username }}</p>
+
+            {% if request.user in group.members.all and request.user != group.author %}
+                <form action="{% url 'leave_group' group.id %}" method="post" class="mb-3">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Выйти из группы</button>
+                </form>
+            {% endif %}
+
+            <div class="messages-container mb-4">
+                {% for message in messages %}
+                    <div class="card mb-2">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ message.author.username }}</h5>
+                            <p class="card-text">{{ message.content }}</p>
+                            <small class="text-muted">{{ message.timestamp }}</small>
+                        </div>
+                    </div>
+                {% empty %}
+                    <p class="text-muted">Сообщений пока нет</p>
+                {% endfor %}
+            </div>
+
+            <form id="send-message-form">
+                {% csrf_token %}
+                <input type="hidden" name="group_id" value="{{ group.id }}">
+                <div class="form-group">
+                    <textarea class="form-control" id="content" name="content" placeholder="Напишите сообщение..." required></textarea>
+                </div>
+                <button type="submit" class="btn">
+                    Отправить
+                </button>
+            </form>
+        </div>
+
+        <div class="col-md-4 member-list">
+            <div class="members-management">
+                <div class="add-members-form mb-4">
+                    <h3>Добавить друзей в группу</h3>
+                    {% for profile in user.profile.friends.all %}
+                        {% if profile.user not in group.members.all %}
+                            <div class="member-card">
+                                <div class="member-avatar">
+                                    <img src="{{ profile.avatar.url|default:'/media/profile_pictures/kruto.png' }}" alt="Avatar">
+                                </div>
+                                <div class="member-info">
+                                    <h5>{{ profile.full_name|default:profile.user.username }}</h5>
+                                    <div class="member-actions">
+                                        <a href="{% url 'profile_page' profile.id %}" class="btn-outline-primary">Профиль</a>
+                                        <button onclick="handleAddMembers({{ group.id }}, {{ profile.user.id }})" class="btn-add">
+                                            Добавить в группу
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                <div class="members-list">
+                    <h3>Участники</h3>
+                    <div class="member-grid">
+                        {% for member in group.members.all %}
+                            <div class="member-card">
+                                <div class="member-avatar">
+                                    <img src="{{ member.profile.avatar|default:'/media/profile_pictures/kruto.png' }}" alt="{{ member.username }}">
+                                </div>
+                                <div class="member-info">
+                                    <h5>{{ member.full_name|default:member.username }}</h5>
+                                    <div class="member-actions">
+                                        {% if member != group.author %}
+                                            <a href="{% url 'profile_page' member.profile.id %}" class="btn-outline-primary">Профиль</a>
+                                            {% if user == group.author %}
+                                                <button onclick="handleRemoveMembers({{ group.id }}, {{ member.id }})" class="btn-outline-danger">
+                                                    Удалить из группы
+                                                </button>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('send-message-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const group_id = parseInt('{{ group.id }}');
+        const content = document.getElementById('content').value;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        try {
+            const response = await fetch(`/page/groups/${group_id}/send/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Authorization': 'Bearer ' + localStorage.getItem('access')
+                },
+                body: JSON.stringify({
+                    content: content
+                })
+            });
+
+            if (response.ok) {
+                location.reload();
+            } else {
+                const errorData = await response.json();
+                alert("Ошибка: " + (errorData.message || "Неизвестная ошибка"));
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert("Ошибка соединения с сервером");
+        }
+    });
+
+    async function handleAddMembers(groupId, memberId) {
+        try {
+            await addGroupMembers(groupId, memberId);
+            alert('Участники успешно добавлены!');
+            location.reload();
+        } catch (error) {
+            console.error('Ошибка добавления:', error);
+        }
+    }
+
+    async function handleRemoveMembers(groupId, memberId) {
+        if (!confirm(`Вы уверены, что хотите удалить участника ${memberId}?`)) {
+            return;
+        }
+
+        try {
+            await removeGroupMembers(groupId, memberId);
+            alert('Участники успешно удалены!');
+            location.reload();
+        } catch (error) {
+            console.error('Ошибка удаления:', error);
+        }
+    }
+
+    async function addGroupMembers(groupId, memberId) {
+        try {
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            const response = await fetch(`/api/groups/${groupId}/members/add/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                    'Authorization': 'Bearer ' + localStorage.getItem('access')
+                },
+                body: JSON.stringify({
+                    members_id: [memberId]
+                })
+            });
+
+            const contentType = response.headers.get('content-type');
+            const isJson = contentType && contentType.includes('application/json');
+            const responseData = isJson ? await response.json() : null;
+
+            if (!response.ok) {
+                const errorMsg = responseData?.detail || 
+                                responseData?.message || 
+                                `HTTP error! status: ${response.status}`;
+                throw new Error(errorMsg);
+            }
+
+            console.log('Участники успешно добавлены:', responseData);
+            return responseData;
+        } catch (error) {
+            console.error('Ошибка добавления участников:', error);
+            alert(error.message);
+            throw error;
+        }
+    }
+
+    async function removeGroupMembers(groupId, memberId) {
+        try {
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            const response = await fetch(`/api/groups/${groupId}/members/remove/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                    'Authorization': 'Bearer ' + localStorage.getItem('access')
+                },
+                body: JSON.stringify({
+                    members_id: [memberId]
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Ошибка при удалении участников');
+            }
+
+            const data = await response.json();
+            console.log('Успешно удалены:', data);
+            return data;
+        } catch (error) {
+            console.error('Ошибка:', error);
+            alert(error.message);
+            throw error;
+        }
+    }
+</script>
+{% endblock %}
